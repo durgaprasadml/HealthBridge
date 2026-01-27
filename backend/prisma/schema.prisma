@@ -1,66 +1,136 @@
 generator client {
   provider = "prisma-client-js"
-  
 }
 
 datasource db {
   provider = "postgresql"
-   url      = env("DATABASE_URL")
+  url      = env("DATABASE_URL")
 }
+
+//////////////////////////////////////////////////////
+// ENUMS
+//////////////////////////////////////////////////////
 
 enum Role {
   PATIENT
   DOCTOR
-  HOSPITAL_ADMIN
+  HOSPITAL
+  ADMIN
 }
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+}
+
+//////////////////////////////////////////////////////
+// USER (PATIENT / DOCTOR / ADMIN)
+//////////////////////////////////////////////////////
 
 model User {
-  id          String   @id @default(uuid())
-  uid         String   @unique
-  name        String
-  phone       String   @unique
-  role        Role
-  createdAt  DateTime @default(now())
+  id            String   @id @default(uuid())
+  name          String
+  phone         String   @unique
+  healthUid     String   @unique
+  dob           DateTime
+  gender        Gender
+  bloodGroup    String
+  role          Role     @default(PATIENT)
 
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
   medicalRecords MedicalRecord[]
+  accessLogs     AccessLog[]
 }
 
-model Hospital {
-  id        String   @id @default(uuid())
-  name      String
-  latitude  Float
-  longitude Float
-  createdAt DateTime @default(now())
-
-  records   MedicalRecord[]
-  doctors   Doctor[] 
-}
-
-model Doctor {
-  id          String   @id @default(uuid())
-  name        String
-  specialty   String
-  hospitalId  String
-  hospital    Hospital @relation(fields: [hospitalId], references: [id])
-}
-
-model MedicalRecord {
-  id          String   @id @default(uuid())
-  userId      String
-  doctorName  String
-  diagnosis   String
-  medicines   String
-  notes       String
-  visitDate   DateTime @default(now())
-  hospitalId  String
-
-  user        User     @relation(fields: [userId], references: [id])
-  hospital    Hospital @relation(fields: [hospitalId], references: [id])
-}
+//////////////////////////////////////////////////////
+// OTP (FOR SIGNUP + LOGIN + CONSENT)
+//////////////////////////////////////////////////////
 
 model OTP {
   id        String   @id @default(uuid())
   phone     String
   otp       String
+  purpose   String   // SIGNUP | LOGIN | HOSPITAL_ACCESS
   expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+//////////////////////////////////////////////////////
+// HOSPITAL
+//////////////////////////////////////////////////////
+
+model Hospital {
+  id          String   @id @default(uuid())
+  name        String
+  location    String
+  latitude    Float?
+  longitude   Float?
+
+  createdAt   DateTime @default(now())
+
+  // Relations
+  doctors     Doctor[]
+  records     MedicalRecord[]
+  accessLogs  AccessLog[]
+}
+
+//////////////////////////////////////////////////////
+// DOCTOR
+//////////////////////////////////////////////////////
+
+model Doctor {
+  id          String   @id @default(uuid())
+  name        String
+  speciality  String
+
+  hospitalId  String
+  hospital    Hospital @relation(fields: [hospitalId], references: [id])
+
+  createdAt   DateTime @default(now())
+
+  records     MedicalRecord[]
+}
+
+//////////////////////////////////////////////////////
+// MEDICAL RECORD (CORE OF HEALTHBRIDGE)
+//////////////////////////////////////////////////////
+
+model MedicalRecord {
+  id            String   @id @default(uuid())
+
+  userId        String
+  user          User     @relation(fields: [userId], references: [id])
+
+  hospitalId    String
+  hospital      Hospital @relation(fields: [hospitalId], references: [id])
+
+  doctorId      String
+  doctor        Doctor   @relation(fields: [doctorId], references: [id])
+
+  diagnosis     String
+  medicines     String   // JSON or comma-separated for now
+  notes         String?
+
+  createdAt     DateTime @default(now())
+}
+
+//////////////////////////////////////////////////////
+// ACCESS LOG (CONSENT & AUDIT TRAIL)
+//////////////////////////////////////////////////////
+
+model AccessLog {
+  id          String   @id @default(uuid())
+
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+
+  hospitalId  String
+  hospital    Hospital @relation(fields: [hospitalId], references: [id])
+
+  purpose     String   // VIEW_RECORDS | ADD_RECORD | UPDATE_RECORD
+  accessedAt  DateTime @default(now())
 }
