@@ -1,37 +1,84 @@
 import express from "express";
-import prisma from "../prismaClient.js";
 import jwt from "jsonwebtoken";
+import prisma from "../prismaClient.js";
+import { generateOTP, sendOTP } from "../utils/otp.js";
 
 const router = express.Router();
 
 /**
- * 🔢 Generate 6-digit OTP
+ * =========================
+ * SIGNUP (NO OTP)
+ * =========================
  */
-function generateOTP() {
-  return Math.floor(100000 + Math.random() * 900000).toString();
-}
+router.post("/signup", async (req, res) => {
+  try {
+    const { name, phone } = req.body;
+
+    if (!name || !phone) {
+      return res.status(400).json({ message: "Name and phone are required" });
+    }
+
+    // Check if user already exists
+    const existingUser = await prisma.user.findUnique({
+      where: { phone },
+    });
+
+    if (existingUser) {
+      return res.status(409).json({ message: "User already exists" });
+    }
+
+    // Generate Health UID
+    const healthUid =
+      "HB-" + Math.random().toString(36).substring(2, 10).toUpperCase();
+
+    const user = await prisma.user.create({
+      data: {
+        name,
+        phone,
+        healthUid,
+        role: "PATIENT",
+      },
+    });
+
+    return res.status(201).json({
+      message: "Signup successful",
+      user: {
+        id: user.id,
+        name: user.name,
+        phone: user.phone,
+        healthUid: user.healthUid,
+      },
+    });
+  } catch (error) {
+    console.error("SIGNUP ERROR:", error);
+    return res.status(500).json({ message: "Signup failed" });
+  }
+});
 
 /**
- * 📤 SEND OTP (MOCK MODE)
- * POST /auth/send-otp
+ * =========================
+ * SEND OTP (LOGIN)
+ * =========================
  */
 router.post("/send-otp", async (req, res) => {
   try {
     const { phone } = req.body;
 
     if (!phone) {
-      return res.status(400).json({ message: "Phone number required" });
+      return res.status(400).json({ message: "Phone is required" });
     }
 
-    const otp = generateOTP();
-    const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 mins
-
-    // Delete old OTPs for same phone
-    await prisma.oTP.deleteMany({
+    const user = await prisma.user.findUnique({
       where: { phone },
     });
 
-    // Save new OTP
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const otp = generateOTP();
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
+
     await prisma.oTP.create({
       data: {
         phone,
@@ -40,55 +87,44 @@ router.post("/send-otp", async (req, res) => {
       },
     });
 
-    // 🔥 MOCK OTP OUTPUT
-    console.log(`📲 MOCK OTP for ${phone}: ${otp}`);
+    await sendOTP(phone, otp);
 
-    res.json({
-      message: "OTP sent successfully (MOCK MODE)",
-      otp, // ⚠️ expose only in dev
-    });
+    res.json({ message: "OTP sent successfully" });
   } catch (error) {
     console.error("SEND OTP ERROR:", error);
-    res.status(500).json({
-      message: "Failed to send OTP",
-      error: error.message,
-    });
+    res.status(500).json({ message: "Failed to send OTP" });
   }
 });
 
 /**
- * ✅ VERIFY OTP
- * POST /auth/verify-otp
+ * =========================
+ * VERIFY OTP (LOGIN)
+ * =========================
  */
 router.post("/verify-otp", async (req, res) => {
   try {
     const { phone, otp } = req.body;
 
     if (!phone || !otp) {
-      return res
-        .status(400)
-        .json({ message: "Phone and OTP are required" });
+      return res.status(400).json({ message: "Phone and OTP required" });
     }
 
     const record = await prisma.oTP.findFirst({
-      where: { phone, otp },
-      orderBy: { expiresAt: "desc" },
+      where: {
+        phone,
+        otp,
+        expiresAt: { gt: new Date() },
+      },
     });
 
     if (!record) {
-      return res.status(401).json({ message: "Invalid OTP" });
+      return res.status(400).json({ message: "Invalid or expired OTP" });
     }
 
-    if (record.expiresAt < new Date()) {
-      return res.status(401).json({ message: "OTP expired" });
-    }
-
-    // Delete OTP after successful verification
-    await prisma.oTP.deleteMany({
-      where: { phone },
+    await prisma.oTP.delete({
+      where: { id: record.id },
     });
 
-    // Create JWT
     const token = jwt.sign(
       { phone },
       process.env.JWT_SECRET,
@@ -101,10 +137,7 @@ router.post("/verify-otp", async (req, res) => {
     });
   } catch (error) {
     console.error("VERIFY OTP ERROR:", error);
-    res.status(500).json({
-      message: "OTP verification failed",
-      error: error.message,
-    });
+    res.status(500).json({ message: "OTP verification failed" });
   }
 });
 
