@@ -1,11 +1,13 @@
-import Signup from "./pages/Signup";
+import { useState } from "react";
+import Login from "./pages/Login";
+import VerifyOtp from "./pages/VerifyOtp";
+import Profile from "./pages/Profile";
 
-function App() {
-  return (
-    <div className="min-h-screen bg-blue-50 flex items-center justify-center">
-      <Signup />
-    </div>
-  );
+export default function App() {
+  const [step, setStep] = useState("login");
+
+  if (step === "login") return <Login onOtpSent={() => setStep("verify")} />;
+  if (step === "verify") return <VerifyOtp onLogin={() => setStep("profile")} />;
+
+  return <Profile />;
 }
-
-export default App;
