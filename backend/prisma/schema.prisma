@@ -64,6 +64,8 @@ model OTP {
 //////////////////////////////////////////////////////
 
 model Hospital {
+  
+
   id          String   @id @default(uuid())
   name        String
   location    String
@@ -73,7 +75,7 @@ model Hospital {
   createdAt   DateTime @default(now())
 
   // Relations
-  doctors     Doctor[]
+  doctors DoctorHospital[]
   records     MedicalRecord[]
   accessLogs  AccessLog[]
 }
@@ -83,16 +85,18 @@ model Hospital {
 //////////////////////////////////////////////////////
 
 model Doctor {
+  
+
   id          String   @id @default(uuid())
   name        String
   speciality  String
 
-  hospitalId  String
-  hospital    Hospital @relation(fields: [hospitalId], references: [id])
+  
 
   createdAt   DateTime @default(now())
 
   records     MedicalRecord[]
+  hospitals DoctorHospital[]
 }
 
 //////////////////////////////////////////////////////
@@ -133,4 +137,19 @@ model AccessLog {
 
   purpose     String   // VIEW_RECORDS | ADD_RECORD | UPDATE_RECORD
   accessedAt  DateTime @default(now())
+}
+
+//////////////////////////////////////////////////////////
+model DoctorHospital {
+  id          String   @id @default(uuid())
+
+  doctorId    String
+  hospitalId  String
+
+  doctor      Doctor   @relation(fields: [doctorId], references: [id])
+  hospital    Hospital @relation(fields: [hospitalId], references: [id])
+
+  createdAt   DateTime @default(now())
+
+  @@unique([doctorId, hospitalId])
 }
