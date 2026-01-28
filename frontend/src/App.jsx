@@ -1,8 +1,9 @@
+import Signup from "./pages/Signup";
+
 function App() {
   return (
-    <div style={{ padding: "40px", fontFamily: "Arial" }}>
-      <h1>HealthBridge</h1>
-      <p>Secure health identity system</p>
+    <div className="min-h-screen bg-blue-50 flex items-center justify-center">
+      <Signup />
     </div>
   );
 }
