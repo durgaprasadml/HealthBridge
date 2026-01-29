@@ -1,80 +1,174 @@
-import { useState } from "react";
-import { signup } from "../services/api";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
+const API_BASE = "http://localhost:5050";
+
 export default function Signup() {
+  const [step, setStep] = useState(1);
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [otp, setOtp] = useState("");
+  const [message, setMessage] = useState("");
   const [result, setResult] = useState(null);
-  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  // ⏱ Timer
+  const [timer, setTimer] = useState(30);
+  const [canResend, setCanResend] = useState(false);
 
   const navigate = useNavigate();
 
-  // ✅ Allow only digits & max 10 characters
+  // Only digits, max 10
   const handlePhoneChange = (e) => {
     const value = e.target.value.replace(/\D/g, "");
-    if (value.length <= 10) {
-      setPhone(value);
-    }
+    if (value.length <= 10) setPhone(value);
   };
 
-  async function handleSignup() {
-    setError("");
-    setResult(null);
+  /* ================= TIMER ================= */
+  useEffect(() => {
+    if (step === 2 && timer > 0) {
+      const interval = setInterval(() => {
+        setTimer((t) => t - 1);
+      }, 1000);
+      return () => clearInterval(interval);
+    }
+
+    if (timer === 0) {
+      setCanResend(true);
+    }
+  }, [step, timer]);
+
+  /* ================= SEND OTP ================= */
+  const sendOtp = async (isResend = false) => {
+    setMessage("");
 
     if (!name.trim()) {
-      setError("Please enter your name");
+      setMessage("Please enter your name");
       return;
     }
 
     if (!/^[6-9]\d{9}$/.test(phone)) {
-      setError("Phone number must be exactly 10 digits");
+      setMessage("Phone number must be 10 digits");
       return;
     }
 
     try {
       setLoading(true);
-      const res = await signup(name.trim(), phone);
+      const res = await fetch(`${API_BASE}/auth/signup/send-otp`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: name.trim(), phone }),
+      }).then((r) => r.json());
 
-      if (res?.user) {
-        setResult(res);
+      if (res.message?.includes("OTP sent")) {
+        setStep(2);
+        setTimer(30);
+        setCanResend(false);
+        setMessage(isResend ? "OTP resent" : `OTP sent to ${phone}`);
       } else {
-        setError(res.message || "Signup failed");
+        setMessage(res.message || "Failed to send OTP");
       }
-    } catch (err) {
-      setError("Signup failed");
+    } catch {
+      setMessage("Server error");
     } finally {
       setLoading(false);
     }
-  }
+  };
+
+  /* ================= VERIFY OTP ================= */
+  const verifyOtp = async () => {
+    setMessage("");
+
+    if (!otp) {
+      setMessage("Please enter OTP");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const res = await fetch(`${API_BASE}/auth/signup/verify-otp`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: name.trim(),
+          phone,
+          otp,
+        }),
+      }).then((r) => r.json());
+
+      if (res.user) {
+        setResult(res.user);
+        setStep(3);
+      } else {
+        setMessage(res.message || "Invalid OTP");
+      }
+    } catch {
+      setMessage("Signup failed");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div>
       <h2>Create HealthBridge Account</h2>
 
-      <input
-        placeholder="Full Name"
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-      />
+      {/* STEP 1 */}
+      {step === 1 && (
+        <>
+          <input
+            placeholder="Full Name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
 
-      <input
-        placeholder="Phone Number (10 digits)"
-        value={phone}
-        onChange={handlePhoneChange}
-      />
+          <input
+            placeholder="Phone Number (10 digits)"
+            value={phone}
+            onChange={handlePhoneChange}
+          />
 
-      <button onClick={handleSignup} disabled={loading}>
-        {loading ? "Creating..." : "Create Account"}
-      </button>
+          <button onClick={() => sendOtp()} disabled={loading}>
+            {loading ? "Sending OTP..." : "Send OTP"}
+          </button>
+        </>
+      )}
 
-      {error && <p style={{ color: "red" }}>{error}</p>}
+      {/* STEP 2 */}
+      {step === 2 && (
+        <>
+          <p>OTP sent to {phone}</p>
 
-      {result?.user && (
-        <div style={{ marginTop: "12px" }}>
+          <input
+            placeholder="Enter OTP"
+            value={otp}
+            onChange={(e) => setOtp(e.target.value)}
+          />
+
+          <button onClick={verifyOtp} disabled={loading}>
+            {loading ? "Verifying..." : "Verify OTP"}
+          </button>
+
+          {!canResend ? (
+            <p style={{ marginTop: "8px" }}>
+              Resend OTP in <strong>{timer}s</strong>
+            </p>
+          ) : (
+            <p
+              style={{ color: "blue", cursor: "pointer", marginTop: "8px" }}
+              onClick={() => sendOtp(true)}
+            >
+              Resend OTP
+            </p>
+          )}
+        </>
+      )}
+
+      {/* STEP 3 */}
+      {step === 3 && result && (
+        <>
           <p>Your HealthBridge UID:</p>
-          <strong>{result.user.healthUid}</strong>
+          <strong>{result.healthUid}</strong>
 
           <p
             style={{ color: "blue", cursor: "pointer", marginTop: "10px" }}
@@ -82,8 +176,10 @@ export default function Signup() {
           >
             Go to Login
           </p>
-        </div>
+        </>
       )}
+
+      {message && <p style={{ color: "red" }}>{message}</p>}
     </div>
   );
 }

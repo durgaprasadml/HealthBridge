@@ -1,7 +1,12 @@
 const API_BASE = "http://localhost:5050";
 
-export async function signup(name, phone) {
-  const res = await fetch(`${API_BASE}/auth/signup`, {
+/* ================= SIGNUP ================= */
+
+/**
+ * STEP 1: Send OTP for signup
+ */
+export async function signupSendOtp(name, phone) {
+  const res = await fetch(`${API_BASE}/auth/signup/send-otp`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ name, phone }),
@@ -9,12 +14,35 @@ export async function signup(name, phone) {
   return res.json();
 }
 
-export async function sendLoginOtp(healthUid) {
-  const res = await fetch(`${API_BASE}/auth/login/send-otp`, {
+/**
+ * STEP 2: Verify OTP & create account
+ */
+export async function signupVerifyOtp(phone, otp) {
+  const res = await fetch(`${API_BASE}/auth/signup/verify-otp`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ healthUid }),
+    body: JSON.stringify({ phone, otp }),
   });
+  return res.json();
+}
+
+/* ================= LOGIN ================= */
+
+export async function sendLoginOtp(identifier) {
+  let payload = {};
+
+  if (/^[6-9]\d{9}$/.test(identifier)) {
+    payload.phone = identifier;
+  } else {
+    payload.healthUid = identifier;
+  }
+
+  const res = await fetch("http://localhost:5050/auth/login/send-otp", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+
   return res.json();
 }
 
@@ -26,6 +54,8 @@ export async function verifyLoginOtp(phone, otp) {
   });
   return res.json();
 }
+
+/* ================= PROFILE ================= */
 
 export async function getProfile(token) {
   const res = await fetch(`${API_BASE}/auth/me`, {

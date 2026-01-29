@@ -1,41 +1,55 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { verifyLoginOtp } from "../services/api";
 
-export default function VerifyOtp({ onLogin }) {
-  const [phone, setPhone] = useState("");
+export default function VerifyOtp() {
   const [otp, setOtp] = useState("");
-  const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const phone = location.state?.phone;
+
+  useEffect(() => {
+    if (!phone) {
+      navigate("/");
+    }
+  }, [phone, navigate]);
 
   const handleVerify = async () => {
-    const res = await verifyLoginOtp(phone, otp);
+    if (!otp) {
+      setMessage("OTP is required");
+      return;
+    }
 
-    if (res.token) {
-      localStorage.setItem("token", res.token);
-      onLogin();
-    } else {
-      setError("Invalid OTP");
+    try {
+      const res = await verifyLoginOtp(phone, otp);
+
+      if (res.token) {
+        localStorage.setItem("token", res.token);
+        navigate("/profile");
+      } else {
+        setMessage(res.message || "Invalid OTP");
+      }
+    } catch (err) {
+      setMessage("OTP verification failed");
     }
   };
 
   return (
     <div>
       <h2>Verify OTP</h2>
+      <p>OTP sent to registered phone number</p>
 
       <input
-        placeholder="Phone number"
-        value={phone}
-        onChange={(e) => setPhone(e.target.value)}
-      />
-
-      <input
-        placeholder="OTP"
+        placeholder="Enter 6-digit OTP"
         value={otp}
         onChange={(e) => setOtp(e.target.value)}
       />
 
-      <button onClick={handleVerify}>Verify</button>
+      <button onClick={handleVerify}>Verify OTP</button>
 
-      <p>{error}</p>
+      {message && <p>{message}</p>}
     </div>
   );
 }

@@ -1,24 +1,79 @@
-const MOCK_OTP = true;
 import express from "express";
 import jwt from "jsonwebtoken";
 import prisma from "../prismaClient.js";
-import { generateOTP } from "../utils/otp.js";
 import { generateHealthUid } from "../utils/healthUid.js";
 import { verifyToken } from "../middlewares/auth.middleware.js";
 
-
 const router = express.Router();
 
-/**
- * SIGNUP (Create account)
- */
-router.post("/signup", async (req, res) => {
+/* =====================================================
+   SIGNUP → SEND OTP
+===================================================== */
+router.post("/signup/send-otp", async (req, res) => {
   try {
     const { name, phone } = req.body;
 
     if (!name || !phone) {
       return res.status(400).json({ message: "Name and phone are required" });
     }
+
+    if (!/^[6-9]\d{9}$/.test(phone)) {
+      return res.status(400).json({ message: "Phone number must be 10 digits" });
+    }
+
+    const existingUser = await prisma.user.findUnique({
+      where: { phone },
+    });
+
+    if (existingUser) {
+      return res.status(400).json({ message: "Phone already registered" });
+    }
+
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+    await prisma.oTP.create({
+      data: {
+        phone,
+        otp,
+        purpose: "SIGNUP",
+        expiresAt: new Date(Date.now() + 5 * 60 * 1000),
+      },
+    });
+
+    console.log(`SIGNUP OTP for ${phone}: ${otp}`);
+
+    res.json({
+      message: "OTP sent for signup",
+      sentTo: phone,
+    });
+  } catch (error) {
+    console.error("SIGNUP SEND OTP ERROR:", error);
+    res.status(500).json({ message: "Failed to send OTP" });
+  }
+});
+
+/* =====================================================
+   SIGNUP → VERIFY OTP → CREATE USER
+===================================================== */
+router.post("/signup/verify-otp", async (req, res) => {
+  try {
+    const { name, phone, otp } = req.body;
+
+    if (!name || !phone || !otp) {
+      return res.status(400).json({ message: "Name, phone and OTP required" });
+    }
+
+    const record = await prisma.oTP.findFirst({
+      where: { phone, otp, purpose: "SIGNUP" },
+      orderBy: { expiresAt: "desc" },
+    });
+
+    if (!record || record.expiresAt < new Date()) {
+      return res.status(400).json({ message: "Invalid or expired OTP" });
+    }
+
+    // 🔥 DELETE OTP AFTER USE
+    await prisma.oTP.delete({ where: { id: record.id } });
 
     const user = await prisma.user.create({
       data: {
@@ -32,96 +87,98 @@ router.post("/signup", async (req, res) => {
     res.json({
       message: "Signup successful",
       user: {
-        id: user.id,
         name: user.name,
         phone: user.phone,
         healthUid: user.healthUid,
       },
     });
   } catch (error) {
-    console.error("SIGNUP ERROR:", error);
+    console.error("SIGNUP VERIFY OTP ERROR:", error);
     res.status(500).json({ message: "Signup failed" });
   }
 });
 
-/**
- * LOGIN → SEND OTP
- */
+/* =====================================================
+   LOGIN → SEND OTP (UID or PHONE)
+===================================================== */
 router.post("/login/send-otp", async (req, res) => {
   try {
-    const { phone, healthUid } = req.body;
+    let identifier = null;
 
-    if (!phone && !healthUid) {
-      return res.status(400).json({
-        message: "Provide phone or healthUid",
-      });
+    if (typeof req.body.identifier === "string") {
+      identifier = req.body.identifier.trim().toUpperCase();
+    } else if (req.body.phone) {
+      identifier = req.body.phone.trim();
+    } else if (req.body.healthUid) {
+      identifier = req.body.healthUid.trim().toUpperCase();
     }
 
-    // Find user by phone OR healthUid
-    const user = await prisma.user.findFirst({
-      where: {
-        OR: [
-          phone ? { phone } : undefined,
-          healthUid ? { healthUid } : undefined,
-        ].filter(Boolean),
-      },
-    });
+    if (!identifier) {
+      return res.status(400).json({ message: "Identifier required" });
+    }
+
+    const isPhone = /^[6-9]\d{9}$/.test(identifier);
+    const isUid = /^HB-[A-Z0-9]+$/.test(identifier);
+
+    let user;
+
+    if (isPhone) {
+      user = await prisma.user.findUnique({ where: { phone: identifier } });
+    } else if (isUid) {
+      user = await prisma.user.findUnique({ where: { healthUid: identifier } });
+    } else {
+      return res.status(400).json({ message: "Invalid UID or phone number" });
+    }
 
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
 
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
-
-    // Remove previous OTPs
-    await prisma.oTP.deleteMany({
-      where: {
-        phone: user.phone,
-        purpose: "LOGIN",
-      },
-    });
 
     await prisma.oTP.create({
       data: {
         phone: user.phone,
         otp,
         purpose: "LOGIN",
-        expiresAt,
+        expiresAt: new Date(Date.now() + 5 * 60 * 1000),
       },
     });
 
-    console.log(`📌 MOCK LOGIN OTP for ${user.phone}: ${otp}`);
+    console.log(`LOGIN OTP for ${user.phone}: ${otp}`);
 
-    return res.json({
-      message: "OTP sent (mock mode)",
+    res.json({
+      message: "OTP sent",
       sentTo: user.phone,
-      otp, // REMOVE IN PRODUCTION
     });
-
   } catch (error) {
     console.error("LOGIN SEND OTP ERROR:", error);
     res.status(500).json({ message: "Failed to send OTP" });
   }
 });
 
-
-
-/**
- * LOGIN → VERIFY OTP
- */
+/* =====================================================
+   LOGIN → VERIFY OTP
+===================================================== */
 router.post("/login/verify-otp", async (req, res) => {
   try {
     const { phone, otp } = req.body;
 
+    if (!phone || !otp) {
+      return res.status(400).json({ message: "Phone and OTP required" });
+    }
+
     const record = await prisma.oTP.findFirst({
-      where: { phone, otp },
+      where: { phone, otp, purpose: "LOGIN" },
       orderBy: { expiresAt: "desc" },
     });
 
     if (!record || record.expiresAt < new Date()) {
       return res.status(400).json({ message: "Invalid or expired OTP" });
     }
+
+    // 🔥 DELETE OTP AFTER USE
+    await prisma.oTP.delete({ where: { id: record.id } });
 
     const user = await prisma.user.findUnique({ where: { phone } });
 
@@ -134,13 +191,7 @@ router.post("/login/verify-otp", async (req, res) => {
     res.json({
       message: "Login successful",
       token,
-      user: {
-        id: user.id,
-        name: user.name,
-        phone: user.phone,
-        healthUid: user.healthUid,
-        role: user.role,
-      },
+      user,
     });
   } catch (error) {
     console.error("LOGIN VERIFY OTP ERROR:", error);
@@ -148,39 +199,26 @@ router.post("/login/verify-otp", async (req, res) => {
   }
 });
 
-/**
- * =========================
- * GET LOGGED-IN USER
- * =========================
- */
+/* =====================================================
+   GET PROFILE
+===================================================== */
 router.get("/me", verifyToken, async (req, res) => {
   try {
     const { healthUid } = req.user;
 
     const user = await prisma.user.findUnique({
       where: { healthUid },
-      select: {
-        id: true,
-        name: true,
-        phone: true,
-        healthUid: true,
-        role: true,
-      },
     });
 
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
 
-    res.json({
-      message: "User profile fetched",
-      user,
-    });
+    res.json({ user });
   } catch (error) {
     console.error("AUTH ME ERROR:", error);
     res.status(500).json({ message: "Failed to fetch user" });
   }
 });
-
 
 export default router;
