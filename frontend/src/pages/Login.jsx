@@ -15,36 +15,34 @@ export default function Login() {
     const value = identifier.trim().toUpperCase();
 
     if (!isPhone(value) && !isUid(value)) {
-      setMessage("Enter valid HealthBridge UID or phone number");
+      setMessage("Enter valid HealthBridge UID or 10-digit phone number");
       return;
     }
 
-    try {
-      // ✅ SEND STRING ONLY
-      const res = await sendLoginOtp(value);
+    const res = await sendLoginOtp(value);
 
-      if (res?.message?.includes("OTP sent")) {
-        navigate("/verify-otp", { state: { identifier: value } });
-      } else {
-        setMessage(res.message || "Failed to send OTP");
-      }
-    } catch (err) {
-      setMessage("Server error. Please try again.");
+    if (res?.message?.includes("OTP sent")) {
+      navigate("/verify-otp", {
+        state: { identifier: value },
+      });
+    } else {
+      setMessage(res.message || "Failed to send OTP");
     }
   };
 
   return (
-    <div className="max-w-md bg-white p-8 rounded-xl shadow-md">
+    <div className="w-full max-w-md bg-white rounded-xl shadow-lg p-8">
       <h2 className="text-2xl font-bold text-primary mb-2">
-        Welcome to HealthBridge
+        Login to HealthBridge
       </h2>
-      <p className="text-sm text-gray-600 mb-6">
-        Login using your UID or registered phone number
+
+      <p className="text-gray-600 text-sm mb-6">
+        Enter your HealthBridge UID or registered phone number
       </p>
 
       <input
-        className="w-full border rounded px-4 py-2 mb-4"
-        placeholder="HealthBridge UID or Phone"
+        className="w-full border rounded px-4 py-2 mb-4 focus:outline-none focus:ring-2 focus:ring-primary"
+        placeholder="HB-XXXXXXXX or Phone Number"
         value={identifier}
         onChange={(e) => setIdentifier(e.target.value)}
       />
@@ -60,13 +58,13 @@ export default function Login() {
         <p className="text-red-600 text-sm mt-4">{message}</p>
       )}
 
-      <p className="text-sm mt-6">
+      <p className="text-sm mt-6 text-center">
         Don’t have an account?{" "}
         <span
           onClick={() => navigate("/signup")}
           className="text-primary cursor-pointer font-medium"
         >
-          Sign up
+          Create one
         </span>
       </p>
     </div>
