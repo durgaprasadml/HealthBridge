@@ -8,53 +8,62 @@ export default function Login() {
   const navigate = useNavigate();
 
   const isPhone = (v) => /^[6-9]\d{9}$/.test(v);
-  const isUid = (v) => /^HB-[A-Z0-9]+$/.test(v);
+  const isUid = (v) => /^HB-[A-Z0-9]{8}$/.test(v);
 
   const handleSendOtp = async () => {
     setMessage("");
-
     const value = identifier.trim().toUpperCase();
 
     if (!isPhone(value) && !isUid(value)) {
-      setMessage("Enter a valid HealthBridge UID or phone number");
+      setMessage("Enter valid HealthBridge UID or phone number");
       return;
     }
 
-    try {
-      // ✅ SEND STRING ONLY
-      const res = await sendLoginOtp(value);
+    const payload = isPhone(value)
+      ? { phone: value }
+      : { healthUid: value };
 
-      if (res?.message === "OTP sent") {
-        navigate("/verify-otp", {
-          state: { phone: res.sentTo },
-        });
-      } else {
-        setMessage(res.message || "Invalid UID or phone number");
-      }
-    } catch (err) {
-      setMessage("Failed to send OTP. Please try again.");
+    const res = await sendLoginOtp(payload);
+
+    if (res?.message?.includes("OTP sent")) {
+      navigate("/verify-otp", { state: payload });
+    } else {
+      setMessage(res.message || "Failed to send OTP");
     }
   };
 
   return (
-    <div>
-      <h2>Login to HealthBridge</h2>
+    <div className="max-w-md bg-white p-8 rounded-xl shadow-md">
+      <h2 className="text-2xl font-bold text-primary mb-2">
+        Welcome to HealthBridge
+      </h2>
+      <p className="text-sm text-gray-600 mb-6">
+        Login using your UID or registered phone number
+      </p>
 
       <input
-        placeholder="HealthBridge UID or Phone number"
+        className="w-full border rounded px-4 py-2 mb-4"
+        placeholder="HealthBridge UID or Phone"
         value={identifier}
         onChange={(e) => setIdentifier(e.target.value)}
       />
 
-      <button onClick={handleSendOtp}>Send OTP</button>
+      <button
+        onClick={handleSendOtp}
+        className="w-full bg-primary text-white py-2 rounded hover:bg-secondary transition"
+      >
+        Send OTP
+      </button>
 
-      {message && <p style={{ color: "red" }}>{message}</p>}
+      {message && (
+        <p className="text-red-600 text-sm mt-4">{message}</p>
+      )}
 
-      <p>
-        Don&apos;t have an account?{" "}
+      <p className="text-sm mt-6">
+        Don’t have an account?{" "}
         <span
-          style={{ color: "blue", cursor: "pointer" }}
           onClick={() => navigate("/signup")}
+          className="text-primary cursor-pointer font-medium"
         >
           Sign up
         </span>
