@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { signup } from "../services/api";
+import { useNavigate } from "react-router-dom";
 
 export default function Signup() {
   const [name, setName] = useState("");
@@ -8,19 +9,39 @@ export default function Signup() {
   const [result, setResult] = useState(null);
   const [error, setError] = useState("");
 
+  const navigate = useNavigate();
+
+  // ✅ Allow only digits & max 10 characters
+  const handlePhoneChange = (e) => {
+    const value = e.target.value.replace(/\D/g, "");
+    if (value.length <= 10) {
+      setPhone(value);
+    }
+  };
+
   async function handleSignup() {
     setError("");
     setResult(null);
 
-    if (!name || !phone) {
-      setError("Please enter name and phone number");
+    if (!name.trim()) {
+      setError("Please enter your name");
+      return;
+    }
+
+    if (!/^[6-9]\d{9}$/.test(phone)) {
+      setError("Phone number must be exactly 10 digits");
       return;
     }
 
     try {
       setLoading(true);
-      const res = await signup({ name, phone });
-      setResult(res);
+      const res = await signup(name.trim(), phone);
+
+      if (res?.user) {
+        setResult(res);
+      } else {
+        setError(res.message || "Signup failed");
+      }
     } catch (err) {
       setError("Signup failed");
     } finally {
@@ -29,44 +50,37 @@ export default function Signup() {
   }
 
   return (
-    <div className="max-w-md mx-auto bg-white p-6 rounded shadow">
-      <h2 className="text-xl font-semibold text-blue-700 mb-4">
-        Create HealthBridge Account
-      </h2>
+    <div>
+      <h2>Create HealthBridge Account</h2>
 
       <input
-        className="w-full border p-2 rounded mb-3"
         placeholder="Full Name"
         value={name}
         onChange={(e) => setName(e.target.value)}
       />
 
       <input
-        className="w-full border p-2 rounded mb-3"
-        placeholder="Phone Number"
+        placeholder="Phone Number (10 digits)"
         value={phone}
-        onChange={(e) => setPhone(e.target.value)}
+        onChange={handlePhoneChange}
       />
 
-      <button
-        onClick={handleSignup}
-        disabled={loading}
-        className="w-full bg-blue-600 text-white py-2 rounded"
-      >
+      <button onClick={handleSignup} disabled={loading}>
         {loading ? "Creating..." : "Create Account"}
       </button>
 
-      {error && (
-        <p className="text-red-600 text-sm mt-3">{error}</p>
-      )}
+      {error && <p style={{ color: "red" }}>{error}</p>}
 
       {result?.user && (
-        <div className="mt-4 bg-blue-50 p-3 rounded">
-          <p className="text-sm text-gray-700">
-            Your HealthBridge UID:
-          </p>
-          <p className="font-mono text-blue-700 text-lg">
-            {result.user.healthUid}
+        <div style={{ marginTop: "12px" }}>
+          <p>Your HealthBridge UID:</p>
+          <strong>{result.user.healthUid}</strong>
+
+          <p
+            style={{ color: "blue", cursor: "pointer", marginTop: "10px" }}
+            onClick={() => navigate("/")}
+          >
+            Go to Login
           </p>
         </div>
       )}
