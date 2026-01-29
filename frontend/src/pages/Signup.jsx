@@ -1,134 +1,107 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { signupSendOtp, signupVerifyOtp } from "../services/api";
 import { useNavigate } from "react-router-dom";
 
-const API_BASE = "http://localhost:5050";
-
 export default function Signup() {
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState(1); // 1 = send OTP, 2 = verify OTP
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [otp, setOtp] = useState("");
-  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  // ⏱ Timer
-  const [timer, setTimer] = useState(30);
-  const [canResend, setCanResend] = useState(false);
-
   const navigate = useNavigate();
 
-  // Only digits, max 10
+  // Allow only digits, max 10
   const handlePhoneChange = (e) => {
     const value = e.target.value.replace(/\D/g, "");
     if (value.length <= 10) setPhone(value);
   };
 
-  /* ================= TIMER ================= */
-  useEffect(() => {
-    if (step === 2 && timer > 0) {
-      const interval = setInterval(() => {
-        setTimer((t) => t - 1);
-      }, 1000);
-      return () => clearInterval(interval);
-    }
-
-    if (timer === 0) {
-      setCanResend(true);
-    }
-  }, [step, timer]);
-
-  /* ================= SEND OTP ================= */
-  const sendOtp = async (isResend = false) => {
-    setMessage("");
+  /* ================= STEP 1: SEND OTP ================= */
+  const handleSendOtp = async () => {
+    setError("");
 
     if (!name.trim()) {
-      setMessage("Please enter your name");
+      setError("Name is required");
       return;
     }
 
     if (!/^[6-9]\d{9}$/.test(phone)) {
-      setMessage("Phone number must be 10 digits");
+      setError("Phone number must be 10 digits");
       return;
     }
 
     try {
       setLoading(true);
-      const res = await fetch(`${API_BASE}/auth/signup/send-otp`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: name.trim(), phone }),
-      }).then((r) => r.json());
+      const res = await signupSendOtp(name.trim(), phone);
+      setLoading(false);
 
       if (res.message?.includes("OTP sent")) {
         setStep(2);
-        setTimer(30);
-        setCanResend(false);
-        setMessage(isResend ? "OTP resent" : `OTP sent to ${phone}`);
       } else {
-        setMessage(res.message || "Failed to send OTP");
+        setError(res.message || "Failed to send OTP");
       }
     } catch {
-      setMessage("Server error");
-    } finally {
       setLoading(false);
+      setError("Failed to send OTP");
     }
   };
 
-  /* ================= VERIFY OTP ================= */
-  const verifyOtp = async () => {
-    setMessage("");
+  /* ================= STEP 2: VERIFY OTP ================= */
+  const handleVerifyOtp = async () => {
+    setError("");
 
-    if (!otp) {
-      setMessage("Please enter OTP");
+    if (!otp || otp.length !== 6) {
+      setError("Enter valid 6-digit OTP");
       return;
     }
 
     try {
       setLoading(true);
-      const res = await fetch(`${API_BASE}/auth/signup/verify-otp`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: name.trim(),
-          phone,
-          otp,
-        }),
-      }).then((r) => r.json());
+      const res = await signupVerifyOtp(name.trim(), phone, otp);
+      setLoading(false);
 
       if (res.user) {
-        setResult(res.user);
-        setStep(3);
+        setResult(res);
       } else {
-        setMessage(res.message || "Invalid OTP");
+        setError(res.message || "Invalid OTP");
       }
     } catch {
-      setMessage("Signup failed");
-    } finally {
       setLoading(false);
+      setError("Signup failed");
     }
   };
 
   return (
-    <div>
-      <h2>Create HealthBridge Account</h2>
+    <div className="max-w-md bg-white p-8 rounded-xl shadow-md">
+      <h2 className="text-2xl font-bold text-primary mb-4">
+        Create HealthBridge Account
+      </h2>
 
       {/* STEP 1 */}
       {step === 1 && (
         <>
           <input
+            className="w-full border rounded px-4 py-2 mb-4"
             placeholder="Full Name"
             value={name}
             onChange={(e) => setName(e.target.value)}
           />
 
           <input
-            placeholder="Phone Number (10 digits)"
+            className="w-full border rounded px-4 py-2 mb-4"
+            placeholder="Phone Number"
             value={phone}
             onChange={handlePhoneChange}
           />
 
-          <button onClick={() => sendOtp()} disabled={loading}>
+          <button
+            onClick={handleSendOtp}
+            disabled={loading}
+            className="w-full bg-primary text-white py-2 rounded hover:bg-secondary transition"
+          >
             {loading ? "Sending OTP..." : "Send OTP"}
           </button>
         </>
@@ -137,49 +110,44 @@ export default function Signup() {
       {/* STEP 2 */}
       {step === 2 && (
         <>
-          <p>OTP sent to {phone}</p>
+          <p className="text-sm text-gray-600 mb-2">
+            OTP sent to <strong>{phone}</strong>
+          </p>
 
           <input
+            className="w-full border rounded px-4 py-2 mb-4"
             placeholder="Enter OTP"
             value={otp}
-            onChange={(e) => setOtp(e.target.value)}
+            onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
           />
 
-          <button onClick={verifyOtp} disabled={loading}>
-            {loading ? "Verifying..." : "Verify OTP"}
+          <button
+            onClick={handleVerifyOtp}
+            disabled={loading}
+            className="w-full bg-primary text-white py-2 rounded hover:bg-secondary transition"
+          >
+            {loading ? "Verifying..." : "Verify & Create Account"}
           </button>
-
-          {!canResend ? (
-            <p style={{ marginTop: "8px" }}>
-              Resend OTP in <strong>{timer}s</strong>
-            </p>
-          ) : (
-            <p
-              style={{ color: "blue", cursor: "pointer", marginTop: "8px" }}
-              onClick={() => sendOtp(true)}
-            >
-              Resend OTP
-            </p>
-          )}
         </>
       )}
 
-      {/* STEP 3 */}
-      {step === 3 && result && (
-        <>
-          <p>Your HealthBridge UID:</p>
-          <strong>{result.healthUid}</strong>
+      {error && <p className="text-red-600 mt-4">{error}</p>}
+
+      {result?.user && (
+        <div className="mt-6 bg-background p-4 rounded">
+          <p className="text-sm text-gray-700">Your HealthBridge UID</p>
+          <p className="font-mono text-lg text-primary">
+            {result.user.healthUid}
+          </p>
 
           <p
-            style={{ color: "blue", cursor: "pointer", marginTop: "10px" }}
+            className="mt-4 text-primary cursor-pointer font-medium"
             onClick={() => navigate("/")}
           >
-            Go to Login
+            Go to Login →
           </p>
-        </>
+        </div>
       )}
-
-      {message && <p style={{ color: "red" }}>{message}</p>}
     </div>
   );
 }

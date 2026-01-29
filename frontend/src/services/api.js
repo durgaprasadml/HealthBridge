@@ -17,11 +17,11 @@ export async function signupSendOtp(name, phone) {
 /**
  * STEP 2: Verify OTP & create account
  */
-export async function signupVerifyOtp(phone, otp) {
+export async function signupVerifyOtp(name, phone, otp) {
   const res = await fetch(`${API_BASE}/auth/signup/verify-otp`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ phone, otp }),
+    body: JSON.stringify({ name, phone, otp }),
   });
   return res.json();
 }
@@ -33,8 +33,10 @@ export async function sendLoginOtp(identifier) {
 
   if (/^[6-9]\d{9}$/.test(identifier)) {
     payload.phone = identifier;
+  } else if (/^HB-[A-Z0-9]+$/.test(identifier)) {
+    payload.healthUid = identifier.toUpperCase();
   } else {
-    payload.healthUid = identifier;
+    throw new Error("Invalid UID or phone");
   }
 
   const res = await fetch("http://localhost:5050/auth/login/send-otp", {

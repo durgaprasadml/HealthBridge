@@ -19,16 +19,17 @@ export default function Login() {
       return;
     }
 
-    const payload = isPhone(value)
-      ? { phone: value }
-      : { healthUid: value };
+    try {
+      // ✅ SEND STRING ONLY
+      const res = await sendLoginOtp(value);
 
-    const res = await sendLoginOtp(payload);
-
-    if (res?.message?.includes("OTP sent")) {
-      navigate("/verify-otp", { state: payload });
-    } else {
-      setMessage(res.message || "Failed to send OTP");
+      if (res?.message?.includes("OTP sent")) {
+        navigate("/verify-otp", { state: { identifier: value } });
+      } else {
+        setMessage(res.message || "Failed to send OTP");
+      }
+    } catch (err) {
+      setMessage("Server error. Please try again.");
     }
   };
 
