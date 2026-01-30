@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { verifyLoginOtp, sendLoginOtp } from "../services/api";
 
@@ -6,26 +6,31 @@ export default function VerifyOtp() {
   const { state } = useLocation();
   const navigate = useNavigate();
 
-  const identifier = state?.identifier;
+  const phone = state?.phone;
 
   const [otp, setOtp] = useState("");
   const [message, setMessage] = useState("");
   const [timer, setTimer] = useState(30);
 
   useEffect(() => {
-    if (!identifier) navigate("/");
-  }, [identifier, navigate]);
+    if (!phone) navigate("/login");
+  }, [phone, navigate]);
 
   useEffect(() => {
     if (timer === 0) return;
-    const interval = setInterval(() => {
-      setTimer((t) => t - 1);
-    }, 1000);
+    const interval = setInterval(() => setTimer((t) => t - 1), 1000);
     return () => clearInterval(interval);
   }, [timer]);
 
   const handleVerify = async () => {
-    const res = await verifyLoginOtp(identifier, otp);
+    setMessage("");
+
+    if (!otp) {
+      setMessage("OTP required");
+      return;
+    }
+
+    const res = await verifyLoginOtp(phone, otp);
 
     if (res?.token) {
       localStorage.setItem("token", res.token);
@@ -36,52 +41,45 @@ export default function VerifyOtp() {
   };
 
   const resendOtp = async () => {
-    await sendLoginOtp(identifier);
+    await sendLoginOtp(phone);
     setTimer(30);
-    setMessage("OTP resent");
   };
 
   return (
-    <div className="w-full max-w-md bg-white rounded-xl shadow-lg p-8">
-      <h2 className="text-2xl font-bold text-primary mb-2">
-        Verify OTP
-      </h2>
+    <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="bg-white p-8 rounded-xl shadow-md w-full max-w-md">
+        <h2 className="text-xl font-bold text-primary mb-4">Verify OTP</h2>
 
-      <p className="text-gray-600 text-sm mb-6">
-        Enter the OTP sent to your registered phone
-      </p>
+        <input
+          className="w-full border rounded px-4 py-2 mb-4"
+          placeholder="Enter OTP"
+          value={otp}
+          onChange={(e) => setOtp(e.target.value)}
+        />
 
-      <input
-        className="w-full border rounded px-4 py-2 mb-4 text-center tracking-widest"
-        placeholder="Enter 6-digit OTP"
-        value={otp}
-        onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
-      />
+        <button
+          onClick={handleVerify}
+          className="w-full bg-primary text-white py-2 rounded hover:bg-secondary transition"
+        >
+          Verify OTP
+        </button>
 
-      <button
-        onClick={handleVerify}
-        className="w-full bg-primary text-white py-2 rounded hover:bg-secondary transition"
-      >
-        Verify OTP
-      </button>
-
-      {message && (
-        <p className="text-red-600 text-sm mt-4">{message}</p>
-      )}
-
-      <div className="text-center mt-6 text-sm">
-        {timer > 0 ? (
-          <span className="text-gray-500">
-            Resend OTP in {timer}s
-          </span>
-        ) : (
-          <button
-            onClick={resendOtp}
-            className="text-primary font-medium"
-          >
-            Resend OTP
-          </button>
+        {message && (
+          <p className="text-red-600 text-sm mt-4">{message}</p>
         )}
+
+        <div className="text-center mt-4 text-sm text-gray-600">
+          {timer > 0 ? (
+            <>Resend OTP in {timer}s</>
+          ) : (
+            <button
+              onClick={resendOtp}
+              className="text-primary font-medium"
+            >
+              Resend OTP
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );

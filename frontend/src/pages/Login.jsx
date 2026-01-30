@@ -19,21 +19,34 @@ export default function Login() {
       return;
     }
 
-    const res = await sendLoginOtp(value);
+    try {
+      const res = await sendLoginOtp(value);
 
-    if (res?.message?.includes("OTP sent")) {
-      navigate("/verify-otp", { state: { identifier: value } });
-    } else {
-      setMessage(res.message || "Failed to send OTP");
+      if (res?.message?.includes("OTP sent")) {
+        // ✅ IMPORTANT FIX: pass phone returned by backend
+        navigate("/verify-otp", {
+          state: {
+            phone: res.sentTo,
+          },
+        });
+      } else {
+        setMessage(res.message || "Failed to send OTP");
+      }
+    } catch {
+      setMessage("Server error. Try again.");
     }
   };
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center px-4">
-      <div className="max-w-md w-full bg-white p-8 rounded-xl shadow-md">
-        <h2 className="text-2xl font-bold text-primary mb-2 text-center">
-          Login to HealthBridge
+    <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="max-w-md bg-white p-8 rounded-xl shadow-md w-full">
+        <h2 className="text-2xl font-bold text-primary mb-2">
+          Welcome to HealthBridge
         </h2>
+
+        <p className="text-sm text-gray-600 mb-6">
+          Login using UID or registered phone number
+        </p>
 
         <input
           className="w-full border rounded px-4 py-2 mb-4"
@@ -50,22 +63,9 @@ export default function Login() {
         </button>
 
         {message && (
-          <p className="text-red-600 text-sm mt-4 text-center">
-            {message}
-          </p>
+          <p className="text-red-600 text-sm mt-4">{message}</p>
         )}
-
-        <p className="text-sm mt-6 text-center">
-          Don’t have an account?{" "}
-          <span
-            onClick={() => navigate("/signup")}
-            className="text-primary cursor-pointer font-medium"
-          >
-            Sign up
-          </span>
-        </p>
       </div>
     </div>
   );
 }
-<div className="min-h-screen fade-in bg-background flex items-center justify-center"></div>

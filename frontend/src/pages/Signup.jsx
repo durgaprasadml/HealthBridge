@@ -1,73 +1,102 @@
 import { useState } from "react";
-import { signupSendOtp } from "../services/api";
+import { signupSendOtp, signupVerifyOtp } from "../services/api";
+import AuthLayout from "../components/AuthLayout";
+import { useNavigate } from "react-router-dom";
 
 export default function Signup() {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
-  const [message, setMessage] = useState("");
+  const [otp, setOtp] = useState("");
+  const [step, setStep] = useState(1);
+  const [error, setError] = useState("");
+  const [result, setResult] = useState(null);
+  const navigate = useNavigate();
 
   const handlePhoneChange = (e) => {
     const value = e.target.value.replace(/\D/g, "");
     if (value.length <= 10) setPhone(value);
   };
 
-  const handleSignup = async () => {
-    setMessage("");
-
-    if (!name.trim()) {
-      setMessage("Name is required");
-      return;
-    }
-
-    if (!/^[6-9]\d{9}$/.test(phone)) {
-      setMessage("Phone must be 10 digits");
-      return;
-    }
-
+  const sendOtp = async () => {
+    setError("");
     const res = await signupSendOtp(name.trim(), phone);
+    if (res.message?.includes("OTP")) setStep(2);
+    else setError(res.message || "Failed to send OTP");
+  };
 
-    if (res?.message?.includes("OTP sent")) {
-      setMessage("OTP sent to your phone");
-    } else {
-      setMessage(res.message || "Signup failed");
-    }
+  const verifyOtp = async () => {
+    setError("");
+    const res = await signupVerifyOtp(name.trim(), phone, otp);
+    if (res?.user) setResult(res);
+    else setError(res.message || "Invalid OTP");
   };
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center px-4">
-      <div className="max-w-md w-full bg-white p-8 rounded-xl shadow-md">
-        <h2 className="text-2xl font-bold text-primary mb-4 text-center">
-          Create HealthBridge Account
-        </h2>
+    <AuthLayout>
+      <h2 className="text-2xl font-bold text-primary mb-4">
+        Create HealthBridge Account
+      </h2>
 
-        <input
-          className="w-full border rounded px-4 py-2 mb-4"
-          placeholder="Full Name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-        />
+      {step === 1 && (
+        <>
+          <input
+            className="w-full border rounded px-4 py-2 mb-4"
+            placeholder="Full Name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
 
-        <input
-          className="w-full border rounded px-4 py-2 mb-4"
-          placeholder="Phone Number"
-          value={phone}
-          onChange={handlePhoneChange}
-        />
+          <input
+            className="w-full border rounded px-4 py-2 mb-4"
+            placeholder="Phone Number (10 digits)"
+            value={phone}
+            onChange={handlePhoneChange}
+          />
 
-        <button
-          onClick={handleSignup}
-          className="w-full bg-primary text-white py-2 rounded hover:bg-secondary transition"
-        >
-          Send OTP
-        </button>
+          <button
+            onClick={sendOtp}
+            className="w-full bg-primary text-white py-2 rounded"
+          >
+            Send OTP
+          </button>
+        </>
+      )}
 
-        {message && (
-          <p className="text-sm text-center text-red-600 mt-4">
-            {message}
+      {step === 2 && (
+        <>
+          <input
+            className="w-full border rounded px-4 py-2 mb-4"
+            placeholder="Enter OTP"
+            value={otp}
+            onChange={(e) => setOtp(e.target.value)}
+          />
+
+          <button
+            onClick={verifyOtp}
+            className="w-full bg-primary text-white py-2 rounded"
+          >
+            Verify & Create Account
+          </button>
+        </>
+      )}
+
+      {error && <p className="text-red-600 mt-4">{error}</p>}
+
+      {result?.user && (
+        <div className="mt-6 bg-background p-4 rounded text-center">
+          <p className="text-sm">Your HealthBridge UID</p>
+          <p className="font-mono text-lg text-primary">
+            {result.user.healthUid}
           </p>
-        )}
-      </div>
-    </div>
+
+          <p
+            className="mt-4 text-primary cursor-pointer"
+            onClick={() => navigate("/login")}
+          >
+            Go to Login →
+          </p>
+        </div>
+      )}
+    </AuthLayout>
   );
 }
-<div className="min-h-screen fade-in bg-background flex items-center justify-center"></div>
