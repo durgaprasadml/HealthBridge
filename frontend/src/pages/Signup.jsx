@@ -70,3 +70,4 @@ export default function Signup() {
     </div>
   );
 }
+<div className="min-h-screen fade-in bg-background flex items-center justify-center"></div>
