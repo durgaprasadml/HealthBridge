@@ -1,6 +1,6 @@
 import Navbar from "../components/Navbar";
-import MedicalLottie from "../components/MedicalLottie";
 import Stats from "../components/Stats";
+import MedicalLottie from "../components/MedicalLottie";
 import { useNavigate } from "react-router-dom";
 
 export default function Home() {
@@ -10,40 +10,40 @@ export default function Home() {
     <div className="min-h-screen bg-background">
       <Navbar />
 
-      <section className="flex flex-col md:flex-row items-center justify-between px-16 py-20 gap-16">
+      <div className="max-w-6xl mx-auto px-6 py-16 grid md:grid-cols-2 gap-10 items-center">
         {/* LEFT */}
-        <div className="max-w-xl">
-          <h1 className="text-5xl font-bold text-gray-900 leading-tight">
-            Get Quick <br />
-            <span className="text-primary">Medical Services</span>
+        <div>
+          <h1 className="text-4xl md:text-5xl font-bold text-primary">
+            One Digital Health Identity
           </h1>
 
-          <p className="text-gray-600 mt-6">
-            HealthBridge provides a secure digital healthcare identity
-            for patients, doctors, and hospitals — all in one platform.
+          <p className="mt-4 text-gray-600">
+            HealthBridge securely connects patients, hospitals, and doctors
+            using a single verified healthcare ID.
           </p>
 
           <div className="mt-8 flex gap-4">
             <button
               onClick={() => navigate("/signup")}
-              className="bg-primary text-white px-6 py-3 rounded-lg hover:bg-secondary"
+              className="px-6 py-3 bg-primary text-white rounded-xl hover:bg-secondary transition"
             >
-              Get Started
+              Create Health ID
             </button>
-            <button className="border border-primary text-primary px-6 py-3 rounded-lg hover:bg-primary hover:text-white">
-              Learn More
+
+            <button
+              onClick={() => navigate("/login")}
+              className="px-6 py-3 border border-primary text-primary rounded-xl"
+            >
+              Login
             </button>
           </div>
         </div>
 
         {/* RIGHT */}
         <MedicalLottie />
-      </section>
-
-      {/* STATS */}
-      <div className="px-16 pb-20">
-        <Stats />
       </div>
+
+      <Stats />
     </div>
   );
 }

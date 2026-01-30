@@ -4,25 +4,25 @@ export default function Navbar() {
   const navigate = useNavigate();
 
   return (
-    <nav className="w-full bg-white shadow-sm px-10 py-4 flex justify-between items-center">
-      <h1 className="text-2xl font-bold text-primary cursor-pointer"
-          onClick={() => navigate("/")}>
+    <nav className="w-full flex items-center justify-between px-8 py-4 bg-white shadow-sm">
+      <h1
+        className="text-2xl font-bold text-primary cursor-pointer"
+        onClick={() => navigate("/")}
+      >
         HealthBridge
       </h1>
 
-      <div className="flex items-center gap-6">
-        <button className="text-gray-600 hover:text-primary">
-          How it works
-        </button>
+      <div className="space-x-4">
         <button
           onClick={() => navigate("/login")}
-          className="text-gray-600 hover:text-primary"
+          className="px-4 py-2 text-primary font-medium"
         >
           Login
         </button>
+
         <button
           onClick={() => navigate("/signup")}
-          className="bg-primary text-white px-5 py-2 rounded-lg hover:bg-secondary"
+          className="px-5 py-2 bg-primary text-white rounded-lg hover:bg-secondary transition"
         >
           Get Started
         </button>
