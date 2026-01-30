@@ -5,7 +5,7 @@ import Signup from "./pages/Signup";
 import VerifyOtp from "./pages/VerifyOtp";
 import Profile from "./pages/Profile";
 
-function App() {
+export default function App() {
   return (
     <Routes>
       <Route path="/" element={<Home />} />
@@ -16,5 +16,3 @@ function App() {
     </Routes>
   );
 }
-
-export default App;

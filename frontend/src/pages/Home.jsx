@@ -1,75 +1,48 @@
+import Navbar from "../components/Navbar";
+import MedicalLottie from "../components/MedicalLottie";
+import Stats from "../components/Stats";
 import { useNavigate } from "react-router-dom";
 
 export default function Home() {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center px-6">
-      <div className="max-w-5xl w-full grid md:grid-cols-2 gap-10 items-center">
+    <div className="min-h-screen bg-background">
+      <Navbar />
 
-        {/* LEFT SECTION */}
-        <div>
-          <h1 className="text-4xl font-bold text-primary mb-4">
-            HealthBridge
+      <section className="flex flex-col md:flex-row items-center justify-between px-16 py-20 gap-16">
+        {/* LEFT */}
+        <div className="max-w-xl">
+          <h1 className="text-5xl font-bold text-gray-900 leading-tight">
+            Get Quick <br />
+            <span className="text-primary">Medical Services</span>
           </h1>
 
-          <p className="text-gray-700 text-lg mb-6">
-            A secure digital bridge between patients, doctors, and hospitals.
+          <p className="text-gray-600 mt-6">
+            HealthBridge provides a secure digital healthcare identity
+            for patients, doctors, and hospitals — all in one platform.
           </p>
-
-          <ul className="space-y-3 text-gray-600">
-            <li>✔ One unique Health UID for life</li>
-            <li>✔ Secure OTP-based login</li>
-            <li>✔ Hospital & doctor controlled access</li>
-            <li>✔ Privacy-first medical records</li>
-          </ul>
 
           <div className="mt-8 flex gap-4">
             <button
-              onClick={() => navigate("/login")}
-              className="bg-primary text-white px-6 py-2 rounded hover:bg-secondary transition"
-            >
-              Login
-            </button>
-
-            <button
               onClick={() => navigate("/signup")}
-              className="border border-primary text-primary px-6 py-2 rounded hover:bg-primary hover:text-white transition"
+              className="bg-primary text-white px-6 py-3 rounded-lg hover:bg-secondary"
             >
-              Create Account
+              Get Started
+            </button>
+            <button className="border border-primary text-primary px-6 py-3 rounded-lg hover:bg-primary hover:text-white">
+              Learn More
             </button>
           </div>
         </div>
 
-        {/* RIGHT SECTION */}
-        <div className="bg-white rounded-xl shadow-lg p-6">
-          <h3 className="text-xl font-semibold text-primary mb-4">
-            Platform Statistics
-          </h3>
+        {/* RIGHT */}
+        <MedicalLottie />
+      </section>
 
-          <div className="grid grid-cols-2 gap-4 text-center">
-            <div className="bg-background p-4 rounded">
-              <p className="text-2xl font-bold text-primary">1,248</p>
-              <p className="text-sm text-gray-600">Registered Users</p>
-            </div>
-
-            <div className="bg-background p-4 rounded">
-              <p className="text-2xl font-bold text-primary">38</p>
-              <p className="text-sm text-gray-600">Hospitals</p>
-            </div>
-
-            <div className="bg-background p-4 rounded">
-              <p className="text-2xl font-bold text-primary">214</p>
-              <p className="text-sm text-gray-600">Doctors</p>
-            </div>
-
-            <div className="bg-background p-4 rounded">
-              <p className="text-2xl font-bold text-primary">99.9%</p>
-              <p className="text-sm text-gray-600">Uptime</p>
-            </div>
-          </div>
-        </div>
-
+      {/* STATS */}
+      <div className="px-16 pb-20">
+        <Stats />
       </div>
     </div>
   );
