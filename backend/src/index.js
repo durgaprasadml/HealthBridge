@@ -1,38 +1,47 @@
 import express from "express";
-import dotenv from "dotenv";
 import cors from "cors";
+import dotenv from "dotenv";
 
+// ROUTES
 import authRoutes from "./routes/auth.routes.js";
-import hospitalAuthRoutes from "./routes/hospital.auth.routes.js";
-import doctorAuthRoutes from "./routes/doctor.auth.routes.js";
 import accessRoutes from "./routes/access.routes.js";
-import hospitalMonitorRoutes from "./routes/hospital.monitor.routes.js";
-import { startExpiryJob } from "./jobs/expiry.job.js";
-import { expireAccesses } from "./cron/accessExpiry.cron.js";
-
-setInterval(expireAccesses, 60 * 1000); // every 1 minute
-
-// AFTER app.listen()
-startExpiryJob();
+import hospitalAuthRoutes from "./routes/hospital.auth.routes.js";
+import hospitalRoutes from "./routes/hospital.routes.js";
+import doctorAuthRoutes from "./routes/doctor.auth.routes.js";
+import doctorRoutes from "./routes/doctor.routes.js";
 
 dotenv.config();
 
 const app = express();
 
+/* ===============================
+   MIDDLEWARES
+================================ */
 app.use(cors());
-app.use(express.json()); // ⬅️ MUST be before routes
+app.use(express.json());
 
-app.use("/auth", authRoutes);
-app.use("/hospital", hospitalAuthRoutes);
-app.use("/doctor", doctorAuthRoutes); // ⬅️ THIS IS THE KEY LINE
-app.use("/access", accessRoutes);
-app.use("/hospital", hospitalMonitorRoutes);
+/* ===============================
+   ROUTE REGISTRATION
+================================ */
+app.use("/auth", authRoutes);                 // patient auth
+app.use("/access", accessRoutes);             // access control
+app.use("/hospital", hospitalAuthRoutes);     // hospital signup/login
+app.use("/hospital", hospitalRoutes);         // hospital monitoring
+app.use("/doctor", doctorAuthRoutes);         // doctor login
+app.use("/doctor", doctorRoutes);             // doctor actions
 
+/* ===============================
+   HEALTH CHECK
+================================ */
 app.get("/", (req, res) => {
   res.send("HealthBridge API running");
 });
 
+/* ===============================
+   SERVER START
+================================ */
 const PORT = process.env.PORT || 5050;
+
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
 });
