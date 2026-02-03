@@ -3,153 +3,109 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "postgresql" // or mysql/sqlite
   url      = env("DATABASE_URL")
 }
-
-//////////////////////////////////////////////////////
-// ENUMS
-//////////////////////////////////////////////////////
 
 enum Role {
   PATIENT
   DOCTOR
   HOSPITAL
-  ADMIN
 }
 
-enum Gender {
-  MALE
-  FEMALE
-  OTHER
+enum AccessStatus {
+  PENDING
+  APPROVED
+  REVOKED
+  EXPIRED
 }
-
-//////////////////////////////////////////////////////
-// USER (PATIENT / DOCTOR / ADMIN)
-//////////////////////////////////////////////////////
 
 model User {
-  id            String   @id @default(uuid())
-  name          String
-  phone         String   @unique
-  healthUid     String   @unique
-  dob           DateTime?
-  gender        Gender?
-  bloodGroup    String?
-  role          Role     @default(PATIENT)
+  id        String   @id @default(uuid())
+  name      String
+  phone     String   @unique
+  healthUid String   @unique
+  role      Role     @default(PATIENT)
+  createdAt DateTime @default(now())
 
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-
-  // Relations
-  medicalRecords MedicalRecord[]
-  accessLogs     AccessLog[]
+  accessRequests  AccessRequest[]
+  EmergencyAccess EmergencyAccess[]
 }
 
-//////////////////////////////////////////////////////
-// OTP (FOR SIGNUP + LOGIN + CONSENT)
-//////////////////////////////////////////////////////
+model Hospital {
+  id       String @id @default(uuid())
+  name     String
+  location String
 
-model OTP {
-  id        String   @id @default(uuid())
-  phone     String
-  otp       String
-  purpose   String   // SIGNUP | LOGIN | HOSPITAL_ACCESS
-  expiresAt DateTime
+  doctors Doctor[]
+
+  // 🔁 OPPOSITE RELATION
+  emergencyAccesses EmergencyAccess[]
+
   createdAt DateTime @default(now())
 }
 
-//////////////////////////////////////////////////////
-// HOSPITAL
-//////////////////////////////////////////////////////
-
-model Hospital {
-  
-
-  id          String   @id @default(uuid())
-  name        String
-  location    String
-  latitude    Float?
-  longitude   Float?
-
-  createdAt   DateTime @default(now())
-
-  // Relations
-  doctors DoctorHospital[]
-  records     MedicalRecord[]
-  accessLogs  AccessLog[]
-}
-
-//////////////////////////////////////////////////////
-// DOCTOR
-//////////////////////////////////////////////////////
-
 model Doctor {
-  
+  id         String @id @default(uuid())
+  name       String
+  phone      String @unique
+  doctorUid  String @unique
+  hospitalId String
 
-  id          String   @id @default(uuid())
-  name        String
-  speciality  String
+  hospital Hospital @relation(fields: [hospitalId], references: [id])
 
-  
+  // 🔁 OPPOSITE RELATIONS (REQUIRED)
+  accessRequests  AccessRequest[]
+  emergencyAccess EmergencyAccess[]
 
-  createdAt   DateTime @default(now())
-
-  records     MedicalRecord[]
-  hospitals DoctorHospital[]
+  createdAt DateTime @default(now())
 }
 
-//////////////////////////////////////////////////////
-// MEDICAL RECORD (CORE OF HEALTHBRIDGE)
-//////////////////////////////////////////////////////
+model AccessRequest {
+  id        String       @id @default(uuid())
+  doctorId  String
+  patientId String
+  status    AccessStatus @default(PENDING)
+  expiresAt DateTime
+  createdAt DateTime     @default(now())
 
-model MedicalRecord {
-  id            String   @id @default(uuid())
-
-  userId        String
-  user          User     @relation(fields: [userId], references: [id])
-
-  hospitalId    String
-  hospital      Hospital @relation(fields: [hospitalId], references: [id])
-
-  doctorId      String
-  doctor        Doctor   @relation(fields: [doctorId], references: [id])
-
-  diagnosis     String
-  medicines     String   // JSON or comma-separated for now
-  notes         String?
-
-  createdAt     DateTime @default(now())
+  doctor  Doctor @relation(fields: [doctorId], references: [id])
+  patient User   @relation(fields: [patientId], references: [id])
 }
 
-//////////////////////////////////////////////////////
-// ACCESS LOG (CONSENT & AUDIT TRAIL)
-//////////////////////////////////////////////////////
+model EmergencyAccess {
+  id         String @id @default(uuid())
+  doctorId   String
+  patientId  String
+  hospitalId String
 
-model AccessLog {
-  id          String   @id @default(uuid())
+  reason String
+  status EmergencyStatus @default(ACTIVE)
 
-  userId      String
-  user        User     @relation(fields: [userId], references: [id])
+  startedAt DateTime  @default(now())
+  expiresAt DateTime
+  revokedAt DateTime?
 
-  hospitalId  String
-  hospital    Hospital @relation(fields: [hospitalId], references: [id])
+  doctor   Doctor   @relation(fields: [doctorId], references: [id])
+  patient  User     @relation(fields: [patientId], references: [id])
+  hospital Hospital @relation(fields: [hospitalId], references: [id])
 
-  purpose     String   // VIEW_RECORDS | ADD_RECORD | UPDATE_RECORD
-  accessedAt  DateTime @default(now())
+  @@index([doctorId])
+  @@index([patientId])
+  @@index([hospitalId])
 }
 
-//////////////////////////////////////////////////////////
-model DoctorHospital {
-  id          String   @id @default(uuid())
+enum EmergencyStatus {
+  ACTIVE
+  REVOKED
+  EXPIRED
+}
 
-  doctorId    String
-  hospitalId  String
-
-  doctor      Doctor   @relation(fields: [doctorId], references: [id])
-  hospital    Hospital @relation(fields: [hospitalId], references: [id])
-
-  createdAt   DateTime @default(now())
-
-  @@unique([doctorId, hospitalId])
+model AuditLog {
+  id        String   @id @default(uuid())
+  actorRole String
+  actorId   String
+  action    String
+  targetId  String?
+  createdAt DateTime @default(now())
 }
