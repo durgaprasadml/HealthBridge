@@ -4,11 +4,9 @@ import { verifyToken } from "../middlewares/auth.middleware.js";
 
 const router = express.Router();
 
-/**
- * ================================
- * DOCTOR → REQUEST ACCESS
- * ================================
- */
+/* =====================================================
+   DOCTOR → REQUEST ACCESS
+===================================================== */
 router.post("/request", verifyToken, async (req, res) => {
   try {
     const { role, doctorId } = req.user;
@@ -19,7 +17,9 @@ router.post("/request", verifyToken, async (req, res) => {
     }
 
     if (!patientUid || !durationHours) {
-      return res.status(400).json({ message: "patientUid and durationHours required" });
+      return res
+        .status(400)
+        .json({ message: "patientUid and durationHours required" });
     }
 
     const patient = await prisma.user.findUnique({
@@ -30,19 +30,21 @@ router.post("/request", verifyToken, async (req, res) => {
       return res.status(404).json({ message: "Patient not found" });
     }
 
-    const access = await prisma.accessRequest.create({
+    const request = await prisma.accessRequest.create({
       data: {
         doctorId,
         patientId: patient.id,
-        expiresAt: new Date(Date.now() + durationHours * 60 * 60 * 1000),
+        expiresAt: new Date(
+          Date.now() + durationHours * 60 * 60 * 1000
+        ),
       },
     });
 
     res.json({
       message: "Access request created",
-      requestId: access.id,
-      status: access.status,
-      expiresAt: access.expiresAt,
+      requestId: request.id,
+      status: request.status,
+      expiresAt: request.expiresAt,
     });
   } catch (err) {
     console.error("ACCESS REQUEST ERROR:", err);
@@ -50,27 +52,22 @@ router.post("/request", verifyToken, async (req, res) => {
   }
 });
 
-/**
- * ================================
- * PATIENT → VIEW REQUESTS
- * ================================
- */
+/* =====================================================
+   PATIENT → VIEW ACCESS REQUESTS
+===================================================== */
 router.get("/requests", verifyToken, async (req, res) => {
   try {
     const { role, userId } = req.user;
 
     if (role !== "PATIENT") {
-      return res.status(403).json({ message: "Only patients can view requests" });
+      return res.status(403).json({ message: "Only patients allowed" });
     }
 
     const requests = await prisma.accessRequest.findMany({
       where: { patientId: userId },
       include: {
         doctor: {
-          select: {
-            name: true,
-            doctorUid: true,
-          },
+          select: { name: true, doctorUid: true },
         },
       },
       orderBy: { createdAt: "desc" },
@@ -83,22 +80,16 @@ router.get("/requests", verifyToken, async (req, res) => {
   }
 });
 
-/**
- * ================================
- * PATIENT → APPROVE / REJECT
- * ================================
- */
+/* =====================================================
+   PATIENT → APPROVE / REJECT ACCESS
+===================================================== */
 router.post("/respond", verifyToken, async (req, res) => {
   try {
     const { role, userId } = req.user;
     const { requestId, action } = req.body;
 
     if (role !== "PATIENT") {
-      return res.status(403).json({ message: "Only patients can respond" });
-    }
-
-    if (!requestId || !["APPROVE", "REJECT"].includes(action)) {
-      return res.status(400).json({ message: "Invalid requestId or action" });
+      return res.status(403).json({ message: "Only patients allowed" });
     }
 
     const request = await prisma.accessRequest.findUnique({
@@ -107,10 +98,6 @@ router.post("/respond", verifyToken, async (req, res) => {
 
     if (!request || request.patientId !== userId) {
       return res.status(404).json({ message: "Request not found" });
-    }
-
-    if (request.expiresAt < new Date()) {
-      return res.status(400).json({ message: "Request already expired" });
     }
 
     const updated = await prisma.accessRequest.update({
@@ -126,7 +113,57 @@ router.post("/respond", verifyToken, async (req, res) => {
     });
   } catch (err) {
     console.error("RESPOND ERROR:", err);
-    res.status(500).json({ message: "Failed to respond to request" });
+    res.status(500).json({ message: "Failed to respond" });
+  }
+});
+
+/* =====================================================
+   DOCTOR → FETCH PATIENT DATA (ONLY IF APPROVED)
+===================================================== */
+router.get("/patient/:patientUid", verifyToken, async (req, res) => {
+  try {
+    const { role, doctorId } = req.user;
+    const { patientUid } = req.params;
+
+    if (role !== "DOCTOR") {
+      return res.status(403).json({ message: "Only doctors allowed" });
+    }
+
+    const patient = await prisma.user.findUnique({
+      where: { healthUid: patientUid },
+    });
+
+    if (!patient) {
+      return res.status(404).json({ message: "Patient not found" });
+    }
+
+    const access = await prisma.accessRequest.findFirst({
+      where: {
+        doctorId,
+        patientId: patient.id,
+        status: "APPROVED",
+        expiresAt: { gt: new Date() },
+      },
+    });
+
+    if (!access) {
+      return res
+        .status(403)
+        .json({ message: "No valid access to patient data" });
+    }
+
+    // 🔐 SAFE DATA ONLY (can expand later)
+    res.json({
+      patient: {
+        name: patient.name,
+        healthUid: patient.healthUid,
+        phone: patient.phone,
+      },
+      accessExpiresAt: access.expiresAt,
+    });
+  } catch (err) {
+    console.error("FETCH PATIENT ERROR:", err);
+    res.status(500).json({ message: "Failed to fetch patient data" });
   }
 });
 
