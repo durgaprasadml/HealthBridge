@@ -7,6 +7,13 @@ import hospitalAuthRoutes from "./routes/hospital.auth.routes.js";
 import doctorAuthRoutes from "./routes/doctor.auth.routes.js";
 import accessRoutes from "./routes/access.routes.js";
 import hospitalMonitorRoutes from "./routes/hospital.monitor.routes.js";
+import { startExpiryJob } from "./jobs/expiry.job.js";
+import { expireAccesses } from "./cron/accessExpiry.cron.js";
+
+setInterval(expireAccesses, 60 * 1000); // every 1 minute
+
+// AFTER app.listen()
+startExpiryJob();
 
 dotenv.config();
 
