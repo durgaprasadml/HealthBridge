@@ -1,6 +1,6 @@
 import express from "express";
-import prisma from "../prismaClient.js";
 import jwt from "jsonwebtoken";
+import prisma from "../prismaClient.js";
 
 const router = express.Router();
 
@@ -9,30 +9,15 @@ const router = express.Router();
 ===================================================== */
 router.post("/login/send-otp", async (req, res) => {
   try {
-    const { identifier } = req.body;
+    const { doctorUid } = req.body;
 
-    if (!identifier) {
-      return res.status(400).json({ message: "Doctor UID or phone required" });
+    if (!doctorUid) {
+      return res.status(400).json({ message: "doctorUid is required" });
     }
 
-    const value = identifier.trim().toUpperCase();
-
-    const isPhone = /^[6-9]\d{9}$/.test(value);
-    const isDoctorUid = /^DOC-[A-Z0-9]+$/.test(value);
-
-    let doctor;
-
-    if (isPhone) {
-      doctor = await prisma.doctor.findUnique({
-        where: { phone: value },
-      });
-    } else if (isDoctorUid) {
-      doctor = await prisma.doctor.findUnique({
-        where: { doctorUid: value },
-      });
-    } else {
-      return res.status(400).json({ message: "Invalid identifier" });
-    }
+    const doctor = await prisma.doctor.findUnique({
+      where: { doctorUid },
+    });
 
     if (!doctor) {
       return res.status(404).json({ message: "Doctor not found" });
@@ -52,10 +37,10 @@ router.post("/login/send-otp", async (req, res) => {
     console.log(`DOCTOR LOGIN OTP for ${doctor.phone}: ${otp}`);
 
     res.json({
-      message: "OTP sent to doctor",
+      message: "OTP sent to registered phone",
     });
-  } catch (err) {
-    console.error("DOCTOR LOGIN SEND OTP ERROR:", err);
+  } catch (error) {
+    console.error("DOCTOR SEND OTP ERROR:", error);
     res.status(500).json({ message: "Failed to send OTP" });
   }
 });
@@ -65,15 +50,23 @@ router.post("/login/send-otp", async (req, res) => {
 ===================================================== */
 router.post("/login/verify-otp", async (req, res) => {
   try {
-    const { phone, otp } = req.body;
+    const { doctorUid, otp } = req.body;
 
-    if (!phone || !otp) {
-      return res.status(400).json({ message: "Phone and OTP required" });
+    if (!doctorUid || !otp) {
+      return res.status(400).json({ message: "doctorUid and OTP required" });
+    }
+
+    const doctor = await prisma.doctor.findUnique({
+      where: { doctorUid },
+    });
+
+    if (!doctor) {
+      return res.status(404).json({ message: "Doctor not found" });
     }
 
     const record = await prisma.otp.findFirst({
       where: {
-        phone,
+        phone: doctor.phone,
         otp,
         purpose: "DOCTOR_LOGIN",
       },
@@ -84,11 +77,8 @@ router.post("/login/verify-otp", async (req, res) => {
       return res.status(400).json({ message: "Invalid or expired OTP" });
     }
 
+    // delete OTP after use
     await prisma.otp.delete({ where: { id: record.id } });
-
-    const doctor = await prisma.doctor.findUnique({
-      where: { phone },
-    });
 
     const token = jwt.sign(
       {
@@ -97,7 +87,7 @@ router.post("/login/verify-otp", async (req, res) => {
         hospitalId: doctor.hospitalId,
       },
       process.env.JWT_SECRET,
-      { expiresIn: "1h" }
+      { expiresIn: "12h" }
     );
 
     res.json({
@@ -108,9 +98,9 @@ router.post("/login/verify-otp", async (req, res) => {
         doctorUid: doctor.doctorUid,
       },
     });
-  } catch (err) {
-    console.error("DOCTOR LOGIN VERIFY OTP ERROR:", err);
-    res.status(500).json({ message: "Login failed" });
+  } catch (error) {
+    console.error("DOCTOR VERIFY OTP ERROR:", error);
+    res.status(500).json({ message: "Doctor login failed" });
   }
 });
 
