@@ -1,11 +1,12 @@
 import express from "express";
 import prisma from "../prismaClient.js";
 import { verifyToken } from "../middlewares/auth.middleware.js";
+import { auditLog } from "../utils/audit.js";
 
 const router = express.Router();
 
 /* ===============================
-   NORMAL ACCESS REQUEST
+   DOCTOR → REQUEST NORMAL ACCESS
 ================================ */
 router.post("/request", verifyToken, async (req, res) => {
   try {
@@ -14,6 +15,10 @@ router.post("/request", verifyToken, async (req, res) => {
 
     if (role !== "DOCTOR") {
       return res.status(403).json({ message: "Only doctors can request access" });
+    }
+
+    if (!patientUid || !durationHours) {
+      return res.status(400).json({ message: "patientUid and durationHours required" });
     }
 
     const patient = await prisma.user.findUnique({
@@ -32,6 +37,14 @@ router.post("/request", verifyToken, async (req, res) => {
       },
     });
 
+    // 🔍 AUDIT LOG
+    await auditLog({
+      actorRole: "DOCTOR",
+      actorId: doctorId,
+      action: "REQUEST_ACCESS",
+      targetId: patient.id,
+    });
+
     res.json({
       message: "Access request created",
       requestId: access.id,
@@ -45,7 +58,7 @@ router.post("/request", verifyToken, async (req, res) => {
 });
 
 /* ===============================
-   EMERGENCY ACCESS (NO OTP)
+   DOCTOR → START EMERGENCY ACCESS
 ================================ */
 router.post("/emergency/start", verifyToken, async (req, res) => {
   try {
@@ -54,6 +67,10 @@ router.post("/emergency/start", verifyToken, async (req, res) => {
 
     if (role !== "DOCTOR") {
       return res.status(403).json({ message: "Only doctors can start emergency access" });
+    }
+
+    if (!patientUid || !reason) {
+      return res.status(400).json({ message: "patientUid and reason required" });
     }
 
     const patient = await prisma.user.findUnique({
@@ -70,8 +87,16 @@ router.post("/emergency/start", verifyToken, async (req, res) => {
         patientId: patient.id,
         hospitalId,
         reason,
-        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
+        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hrs
       },
+    });
+
+    // 🔍 AUDIT LOG
+    await auditLog({
+      actorRole: "DOCTOR",
+      actorId: doctorId,
+      action: "EMERGENCY_ACCESS_START",
+      targetId: patient.id,
     });
 
     res.json({
@@ -85,12 +110,10 @@ router.post("/emergency/start", verifyToken, async (req, res) => {
   }
 });
 
-export default router;
-
-
-/**
- * DOCTOR → VIEW PATIENT DATA (NORMAL / EMERGENCY)
- */
+/* ===============================
+   DOCTOR → VIEW PATIENT DATA
+   (NORMAL or EMERGENCY)
+================================ */
 router.get("/patient/:patientUid", verifyToken, async (req, res) => {
   try {
     const { role, doctorId } = req.user;
@@ -110,7 +133,6 @@ router.get("/patient/:patientUid", verifyToken, async (req, res) => {
 
     const now = new Date();
 
-    // ✅ CHECK NORMAL APPROVED ACCESS
     const approvedAccess = await prisma.accessRequest.findFirst({
       where: {
         doctorId,
@@ -120,7 +142,6 @@ router.get("/patient/:patientUid", verifyToken, async (req, res) => {
       },
     });
 
-    // 🚨 CHECK EMERGENCY ACCESS
     const emergencyAccess = await prisma.emergencyAccess.findFirst({
       where: {
         doctorId,
@@ -136,7 +157,14 @@ router.get("/patient/:patientUid", verifyToken, async (req, res) => {
       });
     }
 
-    // 🔐 LIMITED PATIENT SUMMARY (SAFE)
+    // 🔍 AUDIT LOG
+    await auditLog({
+      actorRole: "DOCTOR",
+      actorId: doctorId,
+      action: "VIEW_PATIENT_DATA",
+      targetId: patient.id,
+    });
+
     res.json({
       patient: {
         name: patient.name,
@@ -150,3 +178,5 @@ router.get("/patient/:patientUid", verifyToken, async (req, res) => {
     res.status(500).json({ message: "Failed to fetch patient data" });
   }
 });
+
+export default router;
