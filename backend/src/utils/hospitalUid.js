@@ -1,7 +1,7 @@
-export function generateHealthUid() {
+export function generateHospitalUid() {
   const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-  let uid = "HB-";
-  for (let i = 0; i < 8; i++) {
+  let uid = "HOSP-";
+  for (let i = 0; i < 6; i++) {
     uid += chars.charAt(Math.floor(Math.random() * chars.length));
   }
   return uid;

@@ -32,6 +32,17 @@ model User {
   EmergencyAccess EmergencyAccess[]
 }
 
+model Otp {
+  id        String   @id @default(uuid())
+  phone     String
+  otp       String
+  purpose   String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([phone])
+}
+
 model Hospital {
   id       String @id @default(uuid())
   name     String
