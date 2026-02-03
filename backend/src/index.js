@@ -6,6 +6,7 @@ import authRoutes from "./routes/auth.routes.js";
 import hospitalAuthRoutes from "./routes/hospital.auth.routes.js";
 import doctorAuthRoutes from "./routes/doctor.auth.routes.js";
 import accessRoutes from "./routes/access.routes.js";
+import hospitalMonitorRoutes from "./routes/hospital.monitor.routes.js";
 
 dotenv.config();
 
@@ -18,6 +19,7 @@ app.use("/auth", authRoutes);
 app.use("/hospital", hospitalAuthRoutes);
 app.use("/doctor", doctorAuthRoutes); // ⬅️ THIS IS THE KEY LINE
 app.use("/access", accessRoutes);
+app.use("/hospital", hospitalMonitorRoutes);
 
 app.get("/", (req, res) => {
   res.send("HealthBridge API running");
