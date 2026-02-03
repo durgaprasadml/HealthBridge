@@ -5,32 +5,29 @@ import { verifyToken } from "../middlewares/auth.middleware.js";
 const router = express.Router();
 
 /**
+ * =====================================================
  * DOCTOR → REQUEST ACCESS TO PATIENT
+ * =====================================================
  */
 router.post("/request", verifyToken, async (req, res) => {
   try {
-    const { role, doctorUid } = req.user;
+    const { role, doctorId } = req.user;
     const { patientUid, durationHours } = req.body;
 
+    // 🔒 Role check
     if (role !== "DOCTOR") {
-      return res.status(403).json({ message: "Only doctors can request access" });
+      return res
+        .status(403)
+        .json({ message: "Only doctors can request access" });
     }
 
     if (!patientUid || !durationHours) {
       return res
         .status(400)
-        .json({ message: "patientUid and durationHours required" });
+        .json({ message: "patientUid and durationHours are required" });
     }
 
-    // ✅ find doctor by doctorUid (NOT random id)
-    const doctor = await prisma.doctor.findUnique({
-      where: { doctorUid },
-    });
-
-    if (!doctor) {
-      return res.status(404).json({ message: "Doctor not found" });
-    }
-
+    // 🔎 Find patient
     const patient = await prisma.user.findUnique({
       where: { healthUid: patientUid },
     });
@@ -39,18 +36,36 @@ router.post("/request", verifyToken, async (req, res) => {
       return res.status(404).json({ message: "Patient not found" });
     }
 
-    const access = await prisma.accessRequest.create({
+    // 🕒 Calculate expiry
+    const expiresAt = new Date(
+      Date.now() + Number(durationHours) * 60 * 60 * 1000
+    );
+
+    // 📝 Create access request
+    const request = await prisma.accessRequest.create({
       data: {
-        doctorId: doctor.id,
+        doctorId,
         patientId: patient.id,
-        expiresAt: new Date(Date.now() + durationHours * 60 * 60 * 1000),
+        expiresAt,
+        status: "PENDING",
+      },
+    });
+
+    // 🧾 Audit log
+    await prisma.auditLog.create({
+      data: {
+        actorRole: "DOCTOR",
+        actorId: doctorId,
+        action: "REQUEST_ACCESS",
+        targetId: patient.id,
       },
     });
 
     res.json({
       message: "Access request created",
-      status: access.status,
-      expiresAt: access.expiresAt,
+      requestId: request.id,
+      status: request.status,
+      expiresAt,
     });
   } catch (err) {
     console.error("ACCESS REQUEST ERROR:", err);
