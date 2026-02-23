@@ -94,7 +94,7 @@ export default function Header() {
                 Login
               </Link>
               <Link
-                to="/login"
+                to="/register"
                 className="px-5 py-2 rounded-lg bg-primary-500 text-white hover:bg-primary-600 transition font-medium"
               >
                 Get Started
@@ -106,4 +106,3 @@ export default function Header() {
     </header>
   );
 }
-

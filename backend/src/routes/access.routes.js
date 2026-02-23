@@ -251,22 +251,47 @@ router.get("/hospital/active-access", verifyToken, async (req, res) => {
       return res.status(403).json({ message: "Only hospitals allowed" });
     }
 
-    const emergencies = await prisma.emergencyAccess.findMany({
-      where: { hospitalId, status: "ACTIVE" },
-      include: {
-        doctor: { select: { name: true, doctorUid: true } },
-        patient: { select: { healthUid: true } },
-      },
-    });
+    const now = new Date();
+    const [normal, emergencies] = await Promise.all([
+      prisma.accessRequest.findMany({
+        where: {
+          status: "APPROVED",
+          expiresAt: { gt: now },
+          doctor: { hospitalId },
+        },
+        include: {
+          doctor: { select: { id: true, name: true, doctorUid: true } },
+          patient: { select: { healthUid: true } },
+        },
+      }),
+      prisma.emergencyAccess.findMany({
+        where: { hospitalId, status: "ACTIVE", expiresAt: { gt: now } },
+        include: {
+          doctor: { select: { id: true, name: true, doctorUid: true } },
+          patient: { select: { healthUid: true } },
+        },
+      }),
+    ]);
 
     res.json({
-      activeAccesses: emergencies.map((e) => ({
-        type: "EMERGENCY",
-        doctor: e.doctor,
-        patient: e.patient,
-        startedAt: e.startedAt,
-        expiresAt: e.expiresAt,
-      })),
+      activeAccesses: [
+        ...normal.map((a) => ({
+          id: a.id,
+          type: "STANDARD",
+          doctor: a.doctor,
+          patient: a.patient,
+          createdAt: a.createdAt,
+          expiresAt: a.expiresAt,
+        })),
+        ...emergencies.map((e) => ({
+          id: e.id,
+          type: "EMERGENCY",
+          doctor: e.doctor,
+          patient: e.patient,
+          createdAt: e.startedAt,
+          expiresAt: e.expiresAt,
+        })),
+      ],
     });
   } catch (err) {
     console.error("HOSPITAL VIEW ERROR:", err);

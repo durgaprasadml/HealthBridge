@@ -1,6 +1,6 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { useState } from "react";
-import { verifyOtp } from "../services/api";
+import { verifyPatientLoginOtp, verifyDoctorLoginOtp, sendPatientLoginOtp, sendDoctorLoginOtp } from "../services/api";
 import { Shield, Lock, Loader2, ArrowLeft, CheckCircle } from "lucide-react";
 
 export default function VerifyOtp() {
@@ -8,6 +8,7 @@ export default function VerifyOtp() {
   const navigate = useNavigate();
   const [otp, setOtp] = useState("");
   const [error, setError] = useState("");
+  const [info, setInfo] = useState("");
   const [loading, setLoading] = useState(false);
 
   // after sending OTP pages now pass `identifier` (phone or UID) and `role` in state
@@ -35,27 +36,47 @@ export default function VerifyOtp() {
     }
 
     setError("");
+    setInfo("");
     setLoading(true);
 
     try {
-      const res = await verifyOtp(state.identifier, otp, state.role);
+      const res =
+        state.role === "DOCTOR"
+          ? await verifyDoctorLoginOtp(state.identifier, otp)
+          : await verifyPatientLoginOtp(state.identifier, otp);
 
       if (res.token) {
         localStorage.setItem("token", res.token);
-        localStorage.setItem("role", res.user.role);
-        localStorage.setItem("userName", res.user.name || "User");
+        const role = res.user?.role || state.role || "PATIENT";
+        localStorage.setItem("role", role);
+        localStorage.setItem("userName", res.user?.name || res.doctor?.name || "User");
 
-        if (res.user.role === "PATIENT") navigate("/patient");
-        else if (res.user.role === "DOCTOR") navigate("/doctor");
-        else if (res.user.role === "HOSPITAL") navigate("/hospital");
+        if (role === "PATIENT") navigate("/patient");
+        else if (role === "DOCTOR") navigate("/doctor");
+        else if (role === "HOSPITAL") navigate("/hospital");
         else navigate("/redirect");
       } else {
         setError(res.message || "Invalid OTP. Please try again.");
       }
     } catch (err) {
-      setError("An error occurred. Please try again.");
+      setError(err.message || "An error occurred. Please try again.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleResend = async () => {
+    setError("");
+    setInfo("");
+    try {
+      if (state.role === "DOCTOR") {
+        await sendDoctorLoginOtp(state.identifier);
+      } else {
+        await sendPatientLoginOtp(state.identifier);
+      }
+      setInfo("OTP resent successfully.");
+    } catch (err) {
+      setError(err.message || "Failed to resend OTP");
     }
   };
 
@@ -136,11 +157,18 @@ export default function VerifyOtp() {
             {error && (
               <p className="text-error text-sm text-center bg-red-50 p-3 rounded-lg">{error}</p>
             )}
+            {info && (
+              <p className="text-success text-sm text-center bg-emerald-50 p-3 rounded-lg">{info}</p>
+            )}
 
             <div className="text-center">
               <p className="text-sm text-text-secondary">
                 Didn't receive the code?{" "}
-                <button className="text-primary-500 font-medium hover:underline">
+                <button
+                  type="button"
+                  onClick={handleResend}
+                  className="text-primary-500 font-medium hover:underline"
+                >
                   Resend OTP
                 </button>
               </p>
@@ -151,4 +179,3 @@ export default function VerifyOtp() {
     </div>
   );
 }
-

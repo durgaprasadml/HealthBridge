@@ -1,6 +1,5 @@
 import express from "express";
 import prisma from "../prismaClient.js";
-import jwt from "jsonwebtoken";
 import { verifyToken } from "../middlewares/auth.middleware.js";
 
 const router = express.Router();
@@ -55,6 +54,61 @@ router.post("/create", verifyToken, async (req, res) => {
   } catch (err) {
     console.error("CREATE DOCTOR ERROR:", err);
     res.status(500).json({ message: "Failed to create doctor" });
+  }
+});
+
+/**
+ * DOCTOR → RECENT ACCESSES (NORMAL + EMERGENCY)
+ */
+router.get("/accesses", verifyToken, async (req, res) => {
+  try {
+    const { role, doctorId } = req.user;
+    if (role !== "DOCTOR") {
+      return res.status(403).json({ message: "Only doctors can view accesses" });
+    }
+
+    const [normal, emergency] = await Promise.all([
+      prisma.accessRequest.findMany({
+        where: { doctorId },
+        include: {
+          patient: { select: { id: true, name: true, healthUid: true } },
+        },
+        orderBy: { createdAt: "desc" },
+        take: 20,
+      }),
+      prisma.emergencyAccess.findMany({
+        where: { doctorId },
+        include: {
+          patient: { select: { id: true, name: true, healthUid: true } },
+        },
+        orderBy: { startedAt: "desc" },
+        take: 20,
+      }),
+    ]);
+
+    const accesses = [
+      ...normal.map((a) => ({
+        id: a.id,
+        type: "STANDARD",
+        status: a.status,
+        patient: a.patient,
+        createdAt: a.createdAt,
+        expiresAt: a.expiresAt,
+      })),
+      ...emergency.map((a) => ({
+        id: a.id,
+        type: "EMERGENCY",
+        status: a.status,
+        patient: a.patient,
+        createdAt: a.startedAt,
+        expiresAt: a.expiresAt,
+      })),
+    ].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+    res.json({ accesses });
+  } catch (err) {
+    console.error("DOCTOR ACCESSES ERROR:", err);
+    res.status(500).json({ message: "Failed to fetch doctor accesses" });
   }
 });
 

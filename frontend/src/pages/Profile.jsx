@@ -32,22 +32,27 @@ export default function Profile() {
 
   const loadProfile = async () => {
     const token = localStorage.getItem("token");
-    const res = await getProfile(token);
-    if (res.user) {
-      setFormData({
-        name: res.user.name || "",
-        phone: res.user.phone || "",
-        healthUid: res.user.healthUid || "",
-        bloodGroup: res.user.bloodGroup || "",
-        allergies: res.user.allergies || "",
-        emergencyContact: res.user.emergencyContact || "",
-        emergencyPhone: res.user.emergencyPhone || "",
-        dateOfBirth: res.user.dateOfBirth || "",
-        gender: res.user.gender || "",
-        address: res.user.address || "",
-      });
+    try {
+      const res = await getProfile(token);
+      if (res.user) {
+        setFormData({
+          name: res.user.name || "",
+          phone: res.user.phone || "",
+          healthUid: res.user.healthUid || "",
+          bloodGroup: res.user.bloodGroup || "",
+          allergies: res.user.allergies || "",
+          emergencyContact: res.user.emergencyContact || "",
+          emergencyPhone: res.user.emergencyPhone || "",
+          dateOfBirth: res.user.dateOfBirth || "",
+          gender: res.user.gender || "",
+          address: res.user.address || "",
+        });
+      }
+    } catch (err) {
+      setMessage(err.message || "Failed to load profile");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const handleSave = async () => {
@@ -55,15 +60,18 @@ export default function Profile() {
     setMessage("");
     
     const token = localStorage.getItem("token");
-    const res = await updateProfile(token, formData);
-    
-    setSaving(false);
-    
-    if (res.user) {
-      setMessage("Profile updated successfully!");
-      localStorage.setItem("user", JSON.stringify(res.user));
-    } else {
-      setMessage(res.message || "Failed to update profile");
+    try {
+      const res = await updateProfile(token, formData);
+      if (res.user) {
+        setMessage("Profile updated successfully!");
+        localStorage.setItem("user", JSON.stringify(res.user));
+      } else {
+        setMessage("Failed to update profile");
+      }
+    } catch (err) {
+      setMessage(err.message || "Failed to update profile");
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -258,4 +266,3 @@ export default function Profile() {
     </div>
   );
 }
-

@@ -28,22 +28,26 @@ export default function AddMedicalRecord() {
 
     setLoading(true);
     const token = localStorage.getItem("token");
-    const res = await addMedicalRecord(token, formData);
-    setLoading(false);
-
-    if (res.record) {
-      setMessage("Medical record added successfully!");
-      // Reset form
-      setFormData({
-        patientUid: "",
-        diagnosis: "",
-        symptoms: "",
-        medications: "",
-        notes: "",
-        followUpDate: "",
-      });
-    } else {
-      setMessage(res.message || "Failed to add record");
+    try {
+      const res = await addMedicalRecord(token, formData);
+      if (res.record) {
+        setMessage("Medical record added successfully!");
+        // Reset form
+        setFormData({
+          patientUid: "",
+          diagnosis: "",
+          symptoms: "",
+          medications: "",
+          notes: "",
+          followUpDate: "",
+        });
+      } else {
+        setMessage("Failed to add record");
+      }
+    } catch (err) {
+      setMessage(err.message || "Failed to add record");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -175,4 +179,3 @@ export default function AddMedicalRecord() {
     </div>
   );
 }
-

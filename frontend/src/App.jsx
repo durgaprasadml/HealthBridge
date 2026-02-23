@@ -11,6 +11,9 @@ import DoctorLogin from "./pages/DoctorLogin";
 import HospitalLogin from "./pages/HospitalLogin";
 import VerifyOtp from "./pages/VerifyOtp";
 import Signup from "./pages/Signup";
+import Register from "./pages/Register";
+import DoctorRegister from "./pages/DoctorRegister";
+import HospitalRegister from "./pages/HospitalRegister";
 import EmergencyAccess from "./pages/EmergencyAccess";
 
 /* Dashboards */
@@ -56,6 +59,10 @@ export default function App() {
       <Route path="/login/hospital" element={<HospitalLogin />} />
       <Route path="/verify-otp" element={<VerifyOtp />} />
       <Route path="/signup" element={<Signup />} />
+      <Route path="/register" element={<Register />} />
+      <Route path="/register/patient" element={<Signup />} />
+      <Route path="/register/doctor" element={<DoctorRegister />} />
+      <Route path="/register/hospital" element={<HospitalRegister />} />
 
       {/* PATIENT */}
       <Route

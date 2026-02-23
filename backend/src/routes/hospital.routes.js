@@ -1,7 +1,9 @@
 import express from "express";
 import prisma from "../prismaClient.js";
+import bcrypt from "bcrypt";
 import { verifyToken } from "../middlewares/auth.middleware.js";
 import { verifyHospital } from "../middlewares/hospital.middleware.js";
+import { generateDoctorUid } from "../utils/doctorUid.js";
 
 const router = express.Router();
 
@@ -10,11 +12,11 @@ const router = express.Router();
  */
 router.post("/create-doctor", verifyToken, verifyHospital, async (req, res) => {
   try {
-    const { name, phone } = req.body;
+    const { name, phone, specialization, password } = req.body;
     const { hospitalId } = req.user;
 
-    if (!name || !phone) {
-      return res.status(400).json({ message: "Name and phone required" });
+    if (!name || !phone || !password) {
+      return res.status(400).json({ message: "Name, phone and password required" });
     }
 
     if (!/^[6-9]\d{9}$/.test(phone)) {
@@ -29,7 +31,16 @@ router.post("/create-doctor", verifyToken, verifyHospital, async (req, res) => {
       return res.status(400).json({ message: "Doctor already exists" });
     }
 
-    const doctorUid = `HB-DOC-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+    if (password.length < 6) {
+      return res.status(400).json({ message: "Password must be at least 6 characters" });
+    }
+
+    let doctorUid = generateDoctorUid();
+    while (await prisma.doctor.findUnique({ where: { doctorUid } })) {
+      doctorUid = generateDoctorUid();
+    }
+
+    const passwordHash = await bcrypt.hash(password, 10);
 
     const doctor = await prisma.doctor.create({
       data: {
@@ -37,20 +48,50 @@ router.post("/create-doctor", verifyToken, verifyHospital, async (req, res) => {
         phone,
         doctorUid,
         hospitalId,
+        specialization: specialization || null,
+        passwordHash,
       },
     });
 
     res.json({
       message: "Doctor created successfully",
       doctor: {
+        id: doctor.id,
         name: doctor.name,
         phone: doctor.phone,
         doctorUid: doctor.doctorUid,
+        specialization: doctor.specialization,
       },
     });
   } catch (err) {
     console.error("CREATE DOCTOR ERROR:", err);
     res.status(500).json({ message: "Failed to create doctor" });
+  }
+});
+
+/**
+ * HOSPITAL → GET DOCTORS
+ */
+router.get("/doctors", verifyToken, verifyHospital, async (req, res) => {
+  try {
+    const { hospitalId } = req.user;
+    const doctors = await prisma.doctor.findMany({
+      where: { hospitalId },
+      select: {
+        id: true,
+        name: true,
+        phone: true,
+        doctorUid: true,
+        specialization: true,
+        createdAt: true,
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    res.json({ doctors });
+  } catch (err) {
+    console.error("FETCH DOCTORS ERROR:", err);
+    res.status(500).json({ message: "Failed to fetch doctors" });
   }
 });
 

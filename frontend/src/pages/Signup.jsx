@@ -32,13 +32,17 @@ export default function Signup() {
     }
 
     setLoading(true);
-    const res = await sendSignupOtp(formData.name, formData.phone);
-    setLoading(false);
-
-    if (res.message) {
-      setStep(2);
-    } else {
-      setError(res.message || "Failed to send OTP");
+    try {
+      const res = await sendSignupOtp(formData.name, formData.phone);
+      if (res.message) {
+        setStep(2);
+      } else {
+        setError("Failed to send OTP");
+      }
+    } catch (err) {
+      setError(err.message || "Failed to send OTP");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -50,19 +54,25 @@ export default function Signup() {
     }
 
     setLoading(true);
-    const res = await verifySignupOtp(formData.name, formData.phone, otp);
-    setLoading(false);
+    try {
+      const res = await verifySignupOtp(formData.name, formData.phone, otp);
 
-    if (res.user) {
-      // Store token and redirect to profile to complete details
-      localStorage.setItem("token", res.token);
-      localStorage.setItem("user", JSON.stringify(res.user));
-      localStorage.setItem("role", "PATIENT");
-      
-      // Navigate to profile to add additional details
-      navigate("/patient/profile", { state: { isNewUser: true } });
-    } else {
-      setError(res.message || "Verification failed");
+      if (res.user && res.token) {
+        // Store token and redirect to profile to complete details
+        localStorage.setItem("token", res.token);
+        localStorage.setItem("user", JSON.stringify(res.user));
+        localStorage.setItem("role", "PATIENT");
+        localStorage.setItem("userName", res.user.name || "Patient");
+
+        // Navigate to profile to add additional details
+        navigate("/patient/profile", { state: { isNewUser: true } });
+      } else {
+        setError("Verification failed");
+      }
+    } catch (err) {
+      setError(err.message || "Verification failed");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -293,4 +303,3 @@ export default function Signup() {
     </div>
   );
 }
-

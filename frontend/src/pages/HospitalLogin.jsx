@@ -2,9 +2,10 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import AuthCard from "../components/AuthCard";
 import { Building2, Lock, Loader2, ArrowLeft } from "lucide-react";
+import { loginHospital } from "../services/api";
 
 export default function HospitalLogin() {
-  const [hospitalId, setHospitalId] = useState("");
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -14,17 +15,23 @@ export default function HospitalLogin() {
     e.preventDefault();
     setError("");
 
-    if (!hospitalId.trim() || !password) {
-      setError("Hospital ID and password are required");
+    if (!identifier.trim() || !password) {
+      setError("Hospital ID/email/phone and password are required");
       return;
     }
 
     setLoading(true);
-    // Hospital login logic would go here - for now just simulate
-    setTimeout(() => {
+    try {
+      const res = await loginHospital(identifier, password);
+      localStorage.setItem("token", res.token);
+      localStorage.setItem("role", "HOSPITAL");
+      localStorage.setItem("userName", res.hospital?.name || "Hospital");
+      navigate("/hospital");
+    } catch (err) {
+      setError(err.message || "Hospital login failed");
+    } finally {
       setLoading(false);
-      setError("Hospital login API not implemented yet");
-    }, 1000);
+    }
   };
 
   const handleKeyPress = (e) => {
@@ -56,15 +63,15 @@ export default function HospitalLogin() {
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-text-primary mb-2">
-                Hospital ID
+                Hospital ID / Email / Phone
               </label>
               <div className="relative">
                 <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" size={20} />
                 <input
                   className="input pl-10 font-mono"
-                  placeholder="HOSP-XXXXX"
-                  value={hospitalId}
-                  onChange={(e) => setHospitalId(e.target.value)}
+                  placeholder="HOSP-XXXXXX or admin@hospital.com"
+                  value={identifier}
+                  onChange={(e) => setIdentifier(e.target.value)}
                   onKeyPress={handleKeyPress}
                 />
               </div>
@@ -108,7 +115,11 @@ export default function HospitalLogin() {
 
             <p className="text-center text-sm text-text-secondary mt-4">
               Register your hospital{" "}
-              <button type="button" className="text-primary-500 font-medium hover:underline">
+              <button
+                type="button"
+                onClick={() => navigate("/register/hospital")}
+                className="text-primary-500 font-medium hover:underline"
+              >
                 here
               </button>
             </p>
@@ -118,4 +129,3 @@ export default function HospitalLogin() {
     </div>
   );
 }
-

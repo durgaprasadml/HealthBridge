@@ -1,8 +1,21 @@
 import express from "express";
 import jwt from "jsonwebtoken";
 import prisma from "../prismaClient.js";
+import bcrypt from "bcrypt";
 
 const router = express.Router();
+
+function getDoctorToken(doctor) {
+  return jwt.sign(
+    {
+      role: "DOCTOR",
+      doctorId: doctor.id,
+      hospitalId: doctor.hospitalId,
+    },
+    process.env.JWT_SECRET,
+    { expiresIn: "12h" }
+  );
+}
 
 /* =====================================================
    DOCTOR LOGIN → SEND OTP
@@ -10,13 +23,14 @@ const router = express.Router();
 router.post("/login/send-otp", async (req, res) => {
   try {
     const { doctorUid } = req.body;
+    const normalizedUid = doctorUid?.trim().toUpperCase();
 
-    if (!doctorUid) {
+    if (!normalizedUid) {
       return res.status(400).json({ message: "doctorUid is required" });
     }
 
     const doctor = await prisma.doctor.findUnique({
-      where: { doctorUid },
+      where: { doctorUid: normalizedUid },
     });
 
     if (!doctor) {
@@ -49,13 +63,14 @@ router.post("/login/send-otp", async (req, res) => {
 router.post("/login/verify-otp", async (req, res) => {
   try {
     const { doctorUid, otp } = req.body;
+    const normalizedUid = doctorUid?.trim().toUpperCase();
 
-    if (!doctorUid || !otp) {
+    if (!normalizedUid || !otp) {
       return res.status(400).json({ message: "doctorUid and OTP required" });
     }
 
     const doctor = await prisma.doctor.findUnique({
-      where: { doctorUid },
+      where: { doctorUid: normalizedUid },
     });
 
     if (!doctor) {
@@ -77,19 +92,15 @@ router.post("/login/verify-otp", async (req, res) => {
 
     await prisma.otp.delete({ where: { id: record.id } });
 
-    const token = jwt.sign(
-      {
-        role: "DOCTOR",
-        doctorId: doctor.id,
-        hospitalId: doctor.hospitalId,
-      },
-      process.env.JWT_SECRET,
-      { expiresIn: "12h" }
-    );
+    const token = getDoctorToken(doctor);
 
     res.json({
       message: "Doctor login successful",
       token,
+      user: {
+        role: "DOCTOR",
+        name: doctor.name,
+      },
       doctor: {
         id: doctor.id,
         name: doctor.name,
@@ -99,6 +110,53 @@ router.post("/login/verify-otp", async (req, res) => {
     });
   } catch (error) {
     console.error("DOCTOR VERIFY OTP ERROR:", error);
+    res.status(500).json({ message: "Doctor login failed" });
+  }
+});
+
+/* =====================================================
+   DOCTOR LOGIN → PASSWORD
+===================================================== */
+router.post("/login/password", async (req, res) => {
+  try {
+    const { doctorUid, password } = req.body;
+    const normalizedUid = doctorUid?.trim().toUpperCase();
+
+    if (!normalizedUid || !password) {
+      return res.status(400).json({ message: "doctorUid and password required" });
+    }
+
+    const doctor = await prisma.doctor.findUnique({
+      where: { doctorUid: normalizedUid },
+    });
+
+    if (!doctor || !doctor.passwordHash) {
+      return res.status(401).json({ message: "Invalid credentials" });
+    }
+
+    const ok = await bcrypt.compare(password, doctor.passwordHash);
+    if (!ok) {
+      return res.status(401).json({ message: "Invalid credentials" });
+    }
+
+    const token = getDoctorToken(doctor);
+
+    res.json({
+      message: "Doctor login successful",
+      token,
+      user: {
+        role: "DOCTOR",
+        name: doctor.name,
+      },
+      doctor: {
+        id: doctor.id,
+        name: doctor.name,
+        doctorUid: doctor.doctorUid,
+        hospitalId: doctor.hospitalId,
+      },
+    });
+  } catch (error) {
+    console.error("DOCTOR PASSWORD LOGIN ERROR:", error);
     res.status(500).json({ message: "Doctor login failed" });
   }
 });

@@ -14,22 +14,28 @@ export default function PatientRecords() {
 
   const loadData = async () => {
     const token = localStorage.getItem("token");
-    
-    const [recordsRes, remindersRes] = await Promise.all([
-      getMyMedicalRecords(token),
-      getMyReminders(token)
-    ]);
-    
-    if (recordsRes.records) setRecords(recordsRes.records);
-    if (remindersRes.reminders) setReminders(remindersRes.reminders);
-    
-    setLoading(false);
+    try {
+      const [recordsRes, remindersRes] = await Promise.all([
+        getMyMedicalRecords(token),
+        getMyReminders(token)
+      ]);
+      
+      if (recordsRes.records) setRecords(recordsRes.records);
+      if (remindersRes.reminders) setReminders(remindersRes.reminders);
+    } catch {
+      setRecords([]);
+      setReminders([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleCompleteReminder = async (id) => {
     const token = localStorage.getItem("token");
-    await completeReminder(token, id);
-    loadData();
+    try {
+      await completeReminder(token, id);
+      loadData();
+    } catch {}
   };
 
   if (loading) {
@@ -199,4 +205,3 @@ export default function PatientRecords() {
     </div>
   );
 }
-

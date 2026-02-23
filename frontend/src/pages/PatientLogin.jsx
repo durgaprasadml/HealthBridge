@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import AuthCard from "../components/AuthCard";
-import { sendLoginOtp } from "../services/api";
-import { User, Mail, Loader2, ArrowLeft } from "lucide-react";
+import { sendPatientLoginOtp } from "../services/api";
+import { User, Loader2, ArrowLeft } from "lucide-react";
 
 export default function PatientLogin() {
   const [identifier, setIdentifier] = useState("");
@@ -21,7 +21,7 @@ export default function PatientLogin() {
 
     setLoading(true);
     try {
-      const res = await sendLoginOtp(value);
+      const res = await sendPatientLoginOtp(value);
 
       if (res) {
         // identifier for verify step can be phone (sentTo) or original value
@@ -33,7 +33,7 @@ export default function PatientLogin() {
         setError(res?.message || "Failed to send OTP. Please check your input.");
       }
     } catch (err) {
-      setError("An error occurred. Please try again.");
+      setError(err.message || "An error occurred. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -103,7 +103,11 @@ export default function PatientLogin() {
 
             <p className="text-center text-sm text-text-secondary mt-4">
               New patient?{" "}
-              <button className="text-primary-500 font-medium hover:underline">
+              <button
+                type="button"
+                onClick={() => navigate("/register/patient")}
+                className="text-primary-500 font-medium hover:underline"
+              >
                 Register for Health ID
               </button>
             </p>
@@ -113,4 +117,3 @@ export default function PatientLogin() {
     </div>
   );
 }
-

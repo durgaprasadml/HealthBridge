@@ -1,30 +1,80 @@
 import { useEffect, useState } from "react";
 import DashboardLayout from "../components/DashboardLayout";
 import StatCard from "../components/StatsCard";
-import { Search, Users, Clock, Building2, Filter, MoreVertical, Shield, AlertCircle } from "lucide-react";
+import { Search, Users, Clock, Shield, AlertCircle, UserPlus, Loader2 } from "lucide-react";
+import { createDoctor, getHospitalActiveAccess, getHospitalDoctors } from "../services/api";
 
 export default function HospitalDashboard() {
   const [accesses, setAccesses] = useState([]);
+  const [doctors, setDoctors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterType, setFilterType] = useState("all");
+  const [createLoading, setCreateLoading] = useState(false);
+  const [createError, setCreateError] = useState("");
+  const [createSuccess, setCreateSuccess] = useState("");
+  const [formData, setFormData] = useState({
+    name: "",
+    phone: "",
+    specialization: "",
+    password: "",
+  });
+
   const token = localStorage.getItem("token");
 
+  const loadData = async () => {
+    if (!token) return;
+    setLoading(true);
+    try {
+      const [accessData, doctorData] = await Promise.all([
+        getHospitalActiveAccess(token),
+        getHospitalDoctors(token),
+      ]);
+      setAccesses(accessData.activeAccesses || []);
+      setDoctors(doctorData.doctors || []);
+    } catch {
+      setAccesses([]);
+      setDoctors([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    fetch("http://localhost:5050/hospital/active-access", {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then((res) => res.json())
-      .then((d) => {
-        setAccesses(d.activeAccesses || []);
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
+    loadData();
   }, []);
 
-  // Filter accesses
+  const handleCreateDoctor = async (e) => {
+    e.preventDefault();
+    setCreateError("");
+    setCreateSuccess("");
+
+    if (!formData.name.trim() || !formData.phone.trim() || !formData.password) {
+      setCreateError("Name, phone and password are required");
+      return;
+    }
+
+    setCreateLoading(true);
+    try {
+      const res = await createDoctor(token, {
+        name: formData.name.trim(),
+        phone: formData.phone.trim(),
+        specialization: formData.specialization.trim(),
+        password: formData.password,
+      });
+
+      setCreateSuccess(`Doctor created. UID: ${res.doctor?.doctorUid}`);
+      setFormData({ name: "", phone: "", specialization: "", password: "" });
+      await loadData();
+    } catch (err) {
+      setCreateError(err.message || "Failed to create doctor");
+    } finally {
+      setCreateLoading(false);
+    }
+  };
+
   const filteredAccesses = accesses.filter((access) => {
-    const matchesSearch = 
+    const matchesSearch =
       access.doctor?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       access.patient?.healthUid?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesFilter = filterType === "all" || access.type === filterType;
@@ -32,26 +82,14 @@ export default function HospitalDashboard() {
   });
 
   const stats = [
-    { title: "Active Accesses", value: accesses.length, icon: Shield, color: "primary" },
-    { title: "Doctors", value: [...new Set(accesses.map(a => a.doctor?.id))].length, icon: Users, color: "success" },
-    { title: "Emergency", value: accesses.filter(a => a.type === "EMERGENCY").length, icon: AlertCircle, color: "error" },
-    { title: "Standard", value: accesses.filter(a => a.type === "STANDARD").length, icon: Clock, color: "info" },
+    { title: "Doctors", value: doctors.length, icon: Users, color: "primary" },
+    { title: "Active Accesses", value: accesses.length, icon: Shield, color: "success" },
+    { title: "Emergency", value: accesses.filter((a) => a.type === "EMERGENCY").length, icon: AlertCircle, color: "error" },
+    { title: "Standard", value: accesses.filter((a) => a.type === "STANDARD").length, icon: Clock, color: "info" },
   ];
-
-  const getStatusBadge = (type) => {
-    switch (type) {
-      case "EMERGENCY":
-        return <span className="badge badge-error">Emergency</span>;
-      case "STANDARD":
-        return <span className="badge badge-info">Standard</span>;
-      default:
-        return <span className="badge badge-warning">{type}</span>;
-    }
-  };
 
   return (
     <DashboardLayout title="Hospital Dashboard">
-      {/* Stats Row */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         {stats.map((stat, index) => (
           <div key={index} className={`stagger-${index + 1}`} style={{ animationDelay: `${index * 0.1}s` }}>
@@ -60,20 +98,92 @@ export default function HospitalDashboard() {
         ))}
       </div>
 
-      {/* Active Accesses Table */}
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-8">
+        <div className="bg-white rounded-xl shadow-card p-6 xl:col-span-1">
+          <div className="flex items-center gap-2 mb-4">
+            <UserPlus size={20} className="text-primary-600" />
+            <h2 className="text-lg font-semibold text-text-primary">Create Doctor Account</h2>
+          </div>
+
+          <form onSubmit={handleCreateDoctor} className="space-y-3">
+            <input
+              className="input"
+              placeholder="Doctor name"
+              value={formData.name}
+              onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
+            />
+            <input
+              className="input"
+              placeholder="Phone number"
+              value={formData.phone}
+              onChange={(e) => setFormData((prev) => ({ ...prev, phone: e.target.value.replace(/\D/g, "").slice(0, 10) }))}
+            />
+            <input
+              className="input"
+              placeholder="Specialization (optional)"
+              value={formData.specialization}
+              onChange={(e) => setFormData((prev) => ({ ...prev, specialization: e.target.value }))}
+            />
+            <input
+              type="password"
+              className="input"
+              placeholder="Temporary password"
+              value={formData.password}
+              onChange={(e) => setFormData((prev) => ({ ...prev, password: e.target.value }))}
+            />
+
+            {createError && <p className="text-sm text-error bg-red-50 p-2 rounded-lg">{createError}</p>}
+            {createSuccess && <p className="text-sm text-success bg-emerald-50 p-2 rounded-lg">{createSuccess}</p>}
+
+            <button type="submit" disabled={createLoading} className="btn btn-primary w-full">
+              {createLoading ? (
+                <>
+                  <Loader2 size={16} className="animate-spin" /> Creating...
+                </>
+              ) : (
+                "Create Doctor"
+              )}
+            </button>
+          </form>
+        </div>
+
+        <div className="bg-white rounded-xl shadow-card overflow-hidden xl:col-span-2">
+          <div className="p-6 border-b border-border">
+            <h2 className="text-lg font-semibold text-text-primary">Doctors</h2>
+            <p className="text-sm text-text-secondary mt-1">Doctors created by your hospital</p>
+          </div>
+          {loading ? (
+            <div className="p-8 text-center text-text-secondary">Loading doctors...</div>
+          ) : doctors.length === 0 ? (
+            <div className="p-8 text-center text-text-secondary">No doctors created yet.</div>
+          ) : (
+            <div className="divide-y divide-border max-h-80 overflow-y-auto">
+              {doctors.map((doctor) => (
+                <div key={doctor.id} className="p-4 flex items-center justify-between">
+                  <div>
+                    <p className="font-medium text-text-primary">{doctor.name}</p>
+                    <p className="text-sm text-text-secondary">{doctor.specialization || "General"}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-mono text-sm text-text-primary">{doctor.doctorUid}</p>
+                    <p className="text-xs text-text-secondary">{doctor.phone}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
       <div className="bg-white rounded-xl shadow-card overflow-hidden">
-        {/* Table Header */}
         <div className="p-6 border-b border-border">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
               <h2 className="text-lg font-semibold text-text-primary">Active Accesses</h2>
-              <p className="text-sm text-text-secondary mt-1">
-                Monitor all active patient record accesses in your hospital
-              </p>
+              <p className="text-sm text-text-secondary mt-1">Monitor active patient record accesses</p>
             </div>
-            
+
             <div className="flex flex-col sm:flex-row gap-3">
-              {/* Search */}
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" size={18} />
                 <input
@@ -85,24 +195,19 @@ export default function HospitalDashboard() {
                 />
               </div>
 
-              {/* Filter */}
-              <div className="relative">
-                <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" size={18} />
-                <select
-                  className="input pl-10 pr-8 py-2 appearance-none cursor-pointer"
-                  value={filterType}
-                  onChange={(e) => setFilterType(e.target.value)}
-                >
-                  <option value="all">All Types</option>
-                  <option value="EMERGENCY">Emergency</option>
-                  <option value="STANDARD">Standard</option>
-                </select>
-              </div>
+              <select
+                className="input py-2"
+                value={filterType}
+                onChange={(e) => setFilterType(e.target.value)}
+              >
+                <option value="all">All Types</option>
+                <option value="EMERGENCY">Emergency</option>
+                <option value="STANDARD">Standard</option>
+              </select>
             </div>
           </div>
         </div>
 
-        {/* Table Content */}
         {loading ? (
           <div className="p-12 text-center">
             <div className="animate-spin w-8 h-8 border-4 border-primary-500 border-t-transparent rounded-full mx-auto"></div>
@@ -110,14 +215,9 @@ export default function HospitalDashboard() {
           </div>
         ) : filteredAccesses.length === 0 ? (
           <div className="p-12 text-center">
-            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Shield size={32} className="text-text-muted" />
-            </div>
             <h3 className="text-lg font-semibold text-text-primary mb-2">No Active Accesses</h3>
             <p className="text-text-secondary max-w-sm mx-auto">
-              {searchTerm || filterType !== "all" 
-                ? "No accesses match your search criteria."
-                : "There are currently no active patient record accesses."}
+              {searchTerm || filterType !== "all" ? "No accesses match your search." : "There are currently no active accesses."}
             </p>
           </div>
         ) : (
@@ -130,63 +230,32 @@ export default function HospitalDashboard() {
                   <th>Type</th>
                   <th>Started</th>
                   <th>Expires</th>
-                  <th>Status</th>
                 </tr>
               </thead>
               <tbody>
-                {filteredAccesses.map((access, index) => (
-                  <tr 
-                    key={access.id || index}
-                    className="animate-fade-in"
-                    style={{ animationDelay: `${index * 0.03}s` }}
-                  >
+                {filteredAccesses.map((access) => (
+                  <tr key={access.id}>
                     <td>
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center text-primary-600 font-medium">
-                          {access.doctor?.name?.charAt(0) || "D"}
-                        </div>
-                        <div>
-                          <p className="font-medium text-text-primary">
-                            {access.doctor?.name || "Unknown"}
-                          </p>
-                          <p className="text-xs text-text-muted">
-                            {access.doctor?.doctorUid || "N/A"}
-                          </p>
-                        </div>
-                      </div>
+                      <p className="font-medium text-text-primary">{access.doctor?.name || "Unknown"}</p>
+                      <p className="text-xs text-text-muted">{access.doctor?.doctorUid || "N/A"}</p>
                     </td>
                     <td>
-                      <code className="bg-gray-100 px-2 py-1 rounded text-sm font-mono">
-                        {access.patient?.healthUid || "N/A"}
-                      </code>
-                    </td>
-                    <td>{getStatusBadge(access.type)}</td>
-                    <td className="text-text-secondary">
-                      {access.createdAt ? new Date(access.createdAt).toLocaleString() : "N/A"}
-                    </td>
-                    <td className="text-text-secondary">
-                      {access.expiresAt ? new Date(access.expiresAt).toLocaleString() : "N/A"}
+                      <code className="bg-gray-100 px-2 py-1 rounded text-sm font-mono">{access.patient?.healthUid || "N/A"}</code>
                     </td>
                     <td>
-                      <span className="badge badge-success">Active</span>
+                      <span className={`badge ${access.type === "EMERGENCY" ? "badge-error" : "badge-info"}`}>
+                        {access.type}
+                      </span>
                     </td>
+                    <td className="text-text-secondary">{access.createdAt ? new Date(access.createdAt).toLocaleString() : "N/A"}</td>
+                    <td className="text-text-secondary">{access.expiresAt ? new Date(access.expiresAt).toLocaleString() : "N/A"}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
         )}
-
-        {/* Table Footer */}
-        {filteredAccesses.length > 0 && (
-          <div className="px-6 py-4 border-t border-border bg-gray-50">
-            <p className="text-sm text-text-secondary">
-              Showing {filteredAccesses.length} of {accesses.length} active accesses
-            </p>
-          </div>
-        )}
       </div>
     </DashboardLayout>
   );
 }
-

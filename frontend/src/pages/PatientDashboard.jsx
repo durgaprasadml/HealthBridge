@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import DashboardLayout from "../components/DashboardLayout";
 import StatCard from "../components/StatsCard";
 import { Shield, Check, X, Clock, User, Building2 } from "lucide-react";
+import { getAccessRequests, respondToAccess } from "../services/api";
 
 export default function PatientDashboard() {
   const [requests, setRequests] = useState([]);
@@ -10,28 +11,16 @@ export default function PatientDashboard() {
   const token = localStorage.getItem("token");
 
   useEffect(() => {
-    fetch("http://localhost:5050/access/requests", {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        setRequests(data || []);
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
+    getAccessRequests(token)
+      .then((data) => setRequests(data || []))
+      .catch(() => setRequests([]))
+      .finally(() => setLoading(false));
   }, []);
 
   const respond = async (id, action) => {
     setResponding(id);
     try {
-      await fetch("http://localhost:5050/access/respond", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ requestId: id, action }),
-      });
+      await respondToAccess(token, id, action);
       setRequests((prev) => prev.filter((r) => r.id !== id));
     } catch (error) {
       console.error("Error responding to request:", error);
@@ -43,7 +32,7 @@ export default function PatientDashboard() {
   const stats = [
     { title: "Total Requests", value: requests.length, icon: Shield, color: "primary" },
     { title: "Pending", value: requests.filter(r => r.status === "PENDING").length, icon: Clock, color: "warning" },
-    { title: "Approved", value: 12, icon: Check, color: "success" },
+    { title: "Approved", value: requests.filter(r => r.status === "APPROVED").length, icon: Check, color: "success" },
   ];
 
   return (
@@ -158,4 +147,3 @@ export default function PatientDashboard() {
     </DashboardLayout>
   );
 }
-

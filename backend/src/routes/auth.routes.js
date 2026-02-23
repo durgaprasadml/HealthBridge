@@ -80,9 +80,18 @@ router.post("/signup/verify-otp", async (req, res) => {
       },
     });
 
+    const token = jwt.sign(
+      { role: user.role, healthUid: user.healthUid, userId: user.id },
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" }
+    );
+
     res.json({
       message: "Signup successful",
+      token,
       user: {
+        id: user.id,
+        role: user.role,
         name: user.name,
         phone: user.phone,
         healthUid: user.healthUid,
@@ -182,7 +191,13 @@ router.post("/login/verify-otp", async (req, res) => {
     res.json({
       message: "Login successful",
       token,
-      user,
+      user: {
+        id: user.id,
+        role: user.role,
+        name: user.name,
+        phone: user.phone,
+        healthUid: user.healthUid,
+      },
     });
   } catch (err) {
     console.error("LOGIN VERIFY OTP ERROR:", err);

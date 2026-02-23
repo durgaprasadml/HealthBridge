@@ -16,14 +16,19 @@ export default function EmergencyAccess() {
     }
 
     setLoading(true);
-    const res = await getEmergencyByPhone(phone);
-    setLoading(false);
-
-    if (res.emergency) {
-      setPatient(res.emergency);
-    } else {
-      setError(res.message || "No patient found with this phone number");
+    try {
+      const res = await getEmergencyByPhone(phone);
+      if (res.emergency) {
+        setPatient(res.emergency);
+      } else {
+        setError("No patient found with this phone number");
+        setPatient(null);
+      }
+    } catch (err) {
+      setError(err.message || "No patient found with this phone number");
       setPatient(null);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -157,4 +162,3 @@ export default function EmergencyAccess() {
     </div>
   );
 }
-

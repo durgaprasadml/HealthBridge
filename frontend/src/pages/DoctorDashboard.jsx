@@ -1,68 +1,71 @@
 import { useState, useEffect } from "react";
 import DashboardLayout from "../components/DashboardLayout";
 import StatCard from "../components/StatsCard";
-import { Search, AlertTriangle, Clock, Users, CheckCircle, Loader2 } from "lucide-react";
+import { Search, AlertTriangle, Clock, Users, CheckCircle, Loader2, Shield } from "lucide-react";
+import { getDoctorAccesses, requestEmergencyAccess, requestPatientAccess } from "../services/api";
 
 export default function DoctorDashboard() {
   const [patientUid, setPatientUid] = useState("");
   const [reason, setReason] = useState("");
+  const [durationHours, setDurationHours] = useState(24);
+  const [mode, setMode] = useState("STANDARD");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
   const [recentAccesses, setRecentAccesses] = useState([]);
   const token = localStorage.getItem("token");
 
-  // Fetch recent accesses
+  const loadAccesses = async () => {
+    if (!token) return;
+    try {
+      const data = await getDoctorAccesses(token);
+      setRecentAccesses(data.accesses || []);
+    } catch {
+      setRecentAccesses([]);
+    }
+  };
+
   useEffect(() => {
-    fetch("http://localhost:5050/doctor/accesses", {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then((res) => res.json())
-      .then((data) => setRecentAccesses(data.accesses || []))
-      .catch(() => {});
+    loadAccesses();
   }, []);
 
-  const emergencyAccess = async (e) => {
+  const submitAccessRequest = async (e) => {
     e.preventDefault();
     setLoading(true);
     setResult(null);
     setError(null);
 
     try {
-      const res = await fetch("http://localhost:5050/access/emergency/start", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          patientUid: patientUid.trim().toUpperCase(),
-          reason: reason || "Emergency treatment required",
-        }),
-      });
-      const data = await res.json();
-      
-      if (res.ok) {
-        setResult(data);
-      } else {
-        setError(data.message || "Failed to get access");
-      }
+      const uid = patientUid.trim().toUpperCase();
+      const res =
+        mode === "EMERGENCY"
+          ? await requestEmergencyAccess(token, uid, reason || "Emergency treatment required")
+          : await requestPatientAccess(token, uid, durationHours);
+
+      setResult(res);
+      setPatientUid("");
+      setReason("");
+      await loadAccesses();
     } catch (err) {
-      setError("Network error. Please try again.");
+      setError(err.message || "Failed to request access");
     } finally {
       setLoading(false);
     }
   };
 
   const stats = [
-    { title: "Patients Seen", value: recentAccesses.length, icon: Users, color: "primary" },
-    { title: "Active Access", value: recentAccesses.filter(a => a.status === "ACTIVE").length, icon: CheckCircle, color: "success" },
-    { title: "Pending", value: 0, icon: Clock, color: "warning" },
+    { title: "Total Accesses", value: recentAccesses.length, icon: Users, color: "primary" },
+    {
+      title: "Active Access",
+      value: recentAccesses.filter((a) => ["APPROVED", "ACTIVE"].includes(a.status)).length,
+      icon: CheckCircle,
+      color: "success",
+    },
+    { title: "Pending", value: recentAccesses.filter((a) => a.status === "PENDING").length, icon: Clock, color: "warning" },
   ];
 
   return (
     <DashboardLayout title="Doctor Dashboard">
-      {/* Stats Row */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         {stats.map((stat, index) => (
           <div key={index} className={`stagger-${index + 1}`} style={{ animationDelay: `${index * 0.1}s` }}>
@@ -72,29 +75,43 @@ export default function DoctorDashboard() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Emergency Access Form */}
         <div className="bg-white rounded-xl shadow-card p-6 animate-fade-in">
           <div className="flex items-center gap-3 mb-6">
-            <div className="p-3 rounded-xl bg-red-50">
-              <AlertTriangle size={24} className="text-error" />
+            <div className={`p-3 rounded-xl ${mode === "EMERGENCY" ? "bg-red-50" : "bg-blue-50"}`}>
+              {mode === "EMERGENCY" ? <AlertTriangle size={24} className="text-error" /> : <Shield size={24} className="text-blue-600" />}
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-text-primary">Emergency Access</h2>
-              <p className="text-sm text-text-secondary">Request immediate access to patient records</p>
+              <h2 className="text-lg font-semibold text-text-primary">Patient Access Request</h2>
+              <p className="text-sm text-text-secondary">Request standard or emergency access to patient records</p>
             </div>
           </div>
 
-          <form onSubmit={emergencyAccess} className="space-y-4">
+          <form onSubmit={submitAccessRequest} className="space-y-4">
+            <div className="flex rounded-lg bg-gray-100 p-1">
+              <button
+                type="button"
+                onClick={() => setMode("STANDARD")}
+                className={`flex-1 py-2 text-sm rounded-md ${mode === "STANDARD" ? "bg-white shadow text-primary-600" : "text-text-secondary"}`}
+              >
+                Standard
+              </button>
+              <button
+                type="button"
+                onClick={() => setMode("EMERGENCY")}
+                className={`flex-1 py-2 text-sm rounded-md ${mode === "EMERGENCY" ? "bg-white shadow text-primary-600" : "text-text-secondary"}`}
+              >
+                Emergency
+              </button>
+            </div>
+
             <div>
-              <label className="block text-sm font-medium text-text-primary mb-2">
-                Patient Health UID
-              </label>
+              <label className="block text-sm font-medium text-text-primary mb-2">Patient Health UID</label>
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" size={20} />
                 <input
                   type="text"
                   className="input pl-10"
-                  placeholder="Enter Patient Health ID (e.g., HB-XXXXXXX)"
+                  placeholder="HB-XXXXXXXX"
                   value={patientUid}
                   onChange={(e) => setPatientUid(e.target.value)}
                   required
@@ -102,56 +119,62 @@ export default function DoctorDashboard() {
               </div>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-text-primary mb-2">
-                Reason for Access
-              </label>
-              <textarea
-                className="input resize-none"
-                rows={3}
-                placeholder="Describe the emergency situation..."
-                value={reason}
-                onChange={(e) => setReason(e.target.value)}
-              />
-            </div>
+            {mode === "STANDARD" ? (
+              <div>
+                <label className="block text-sm font-medium text-text-primary mb-2">Access Duration</label>
+                <select className="input" value={durationHours} onChange={(e) => setDurationHours(Number(e.target.value))}>
+                  <option value={1}>1 hour</option>
+                  <option value={6}>6 hours</option>
+                  <option value={12}>12 hours</option>
+                  <option value={24}>24 hours</option>
+                </select>
+              </div>
+            ) : (
+              <div>
+                <label className="block text-sm font-medium text-text-primary mb-2">Emergency Reason</label>
+                <textarea
+                  className="input resize-none"
+                  rows={3}
+                  placeholder="Describe the emergency situation..."
+                  value={reason}
+                  onChange={(e) => setReason(e.target.value)}
+                />
+              </div>
+            )}
 
-            <button
-              type="submit"
-              disabled={loading || !patientUid}
-              className="btn btn-danger w-full py-3 text-base"
-            >
+            <button type="submit" disabled={loading || !patientUid} className={`btn w-full py-3 text-base ${mode === "EMERGENCY" ? "btn-danger" : "btn-primary"}`}>
               {loading ? (
                 <>
                   <Loader2 size={20} className="animate-spin" />
                   Processing...
                 </>
-              ) : (
+              ) : mode === "EMERGENCY" ? (
                 <>
                   <AlertTriangle size={20} />
                   Request Emergency Access
+                </>
+              ) : (
+                <>
+                  <Shield size={20} />
+                  Request Standard Access
                 </>
               )}
             </button>
           </form>
 
-          {/* Result Display */}
           {result && (
             <div className="mt-6 p-4 bg-emerald-50 border border-emerald-200 rounded-lg animate-slide-up">
               <div className="flex items-center gap-2 text-emerald-700 font-medium mb-2">
                 <CheckCircle size={20} />
-                Access Granted
+                Request Submitted
               </div>
-              <p className="text-sm text-emerald-600 mb-3">
-                Emergency access has been approved. You can now view the patient's records.
-              </p>
+              <p className="text-sm text-emerald-600 mb-3">{result.message}</p>
               <div className="bg-white/50 p-3 rounded text-xs font-mono text-emerald-800">
-                Access ID: {result.accessId || "N/A"}<br />
                 Expires: {result.expiresAt ? new Date(result.expiresAt).toLocaleString() : "N/A"}
               </div>
             </div>
           )}
 
-          {/* Error Display */}
           {error && (
             <div className="mt-6 p-4 bg-red-50 border border-red-200 rounded-lg animate-slide-up">
               <p className="text-sm text-red-600">{error}</p>
@@ -159,11 +182,10 @@ export default function DoctorDashboard() {
           )}
         </div>
 
-        {/* Recent Accesses */}
         <div className="bg-white rounded-xl shadow-card">
           <div className="p-6 border-b border-border">
-            <h2 className="text-lg font-semibold text-text-primary">Recent Patient Accesses</h2>
-            <p className="text-sm text-text-secondary mt-1">Your recent patient record accesses</p>
+            <h2 className="text-lg font-semibold text-text-primary">Recent Accesses</h2>
+            <p className="text-sm text-text-secondary mt-1">Your standard and emergency access activity</p>
           </div>
 
           {recentAccesses.length === 0 ? (
@@ -175,28 +197,22 @@ export default function DoctorDashboard() {
             </div>
           ) : (
             <div className="divide-y divide-border max-h-96 overflow-y-auto">
-              {recentAccesses.slice(0, 10).map((access, index) => (
-                <div 
-                  key={access.id || index}
-                  className="p-4 hover:bg-primary-50/30 transition-colors"
-                >
+              {recentAccesses.slice(0, 15).map((access) => (
+                <div key={`${access.type}-${access.id}`} className="p-4 hover:bg-primary-50/30 transition-colors">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center text-primary-600 font-medium">
                         {access.patient?.healthUid?.slice(-2) || "??"}
                       </div>
                       <div>
-                        <p className="font-medium text-text-primary text-sm">
-                          {access.patient?.healthUid || "Unknown"}
-                        </p>
-                        <p className="text-xs text-text-muted">
-                          {access.createdAt ? new Date(access.createdAt).toLocaleDateString() : "Unknown date"}
-                        </p>
+                        <p className="font-medium text-text-primary text-sm">{access.patient?.healthUid || "Unknown"}</p>
+                        <p className="text-xs text-text-muted">{access.createdAt ? new Date(access.createdAt).toLocaleString() : "Unknown date"}</p>
                       </div>
                     </div>
-                    <span className={`badge ${access.status === 'ACTIVE' ? 'badge-success' : 'badge-info'}`}>
-                      {access.status || "ACTIVE"}
-                    </span>
+                    <div className="text-right">
+                      <span className={`badge ${access.type === "EMERGENCY" ? "badge-error" : "badge-info"}`}>{access.type}</span>
+                      <p className="text-xs text-text-muted mt-1">{access.status}</p>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -207,4 +223,3 @@ export default function DoctorDashboard() {
     </DashboardLayout>
   );
 }
-
