@@ -1,42 +1,40 @@
-import { useEffect, useState } from "react";
+import { TrendingUp, TrendingDown } from "lucide-react";
 
-function Counter({ end, label }) {
-  const [count, setCount] = useState(0);
-
-  useEffect(() => {
-    let start = 0;
-    const duration = 1500;
-    const stepTime = 20;
-    const increment = end / (duration / stepTime);
-
-    const timer = setInterval(() => {
-      start += increment;
-      if (start >= end) {
-        setCount(end);
-        clearInterval(timer);
-      } else {
-        setCount(Math.floor(start));
-      }
-    }, stepTime);
-
-    return () => clearInterval(timer);
-  }, [end]);
+export default function StatCard({ 
+  title, 
+  value, 
+  icon: Icon, 
+  trend, 
+  trendValue,
+  color = "primary" 
+}) {
+  const colorClasses = {
+    primary: "bg-primary-50 text-primary-500",
+    success: "bg-emerald-50 text-emerald-500",
+    warning: "bg-amber-50 text-amber-500",
+    error: "bg-red-50 text-red-500",
+    info: "bg-blue-50 text-blue-500",
+  };
 
   return (
-    <div className="text-center">
-      <p className="text-3xl font-bold text-primary">{count}+</p>
-      <p className="text-gray-600 mt-1">{label}</p>
+    <div className="bg-white rounded-xl shadow-card p-6 hover:shadow-card-hover transition-all duration-300 animate-fade-in">
+      <div className="flex items-start justify-between">
+        <div className={`p-3 rounded-xl ${colorClasses[color]}`}>
+          {Icon && <Icon size={24} />}
+        </div>
+        {trend && (
+          <div className={`flex items-center gap-1 text-sm ${trend === 'up' ? 'text-success' : 'text-error'}`}>
+            {trend === 'up' ? <TrendingUp size={16} /> : <TrendingDown size={16} />}
+            <span>{trendValue}</span>
+          </div>
+        )}
+      </div>
+      
+      <div className="mt-4">
+        <p className="text-sm text-text-secondary font-medium">{title}</p>
+        <p className="text-2xl font-bold text-text-primary mt-1">{value}</p>
+      </div>
     </div>
   );
 }
 
-export default function Stats() {
-  return (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-10 mt-16">
-      <Counter end={25000} label="Users" />
-      <Counter end={300} label="Hospitals" />
-      <Counter end={1200} label="Doctors" />
-      <Counter end={99} label="Secure Access %" />
-    </div>
-  );
-}

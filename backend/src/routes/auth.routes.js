@@ -99,15 +99,18 @@ router.post("/signup/verify-otp", async (req, res) => {
 ===================================================== */
 router.post("/login/send-otp", async (req, res) => {
   try {
-    const { identifier } = req.body;
+    const { phone, healthUid, identifier } = req.body;
 
-    if (!identifier) {
+    let value = identifier || phone || healthUid;
+
+    if (!value) {
       return res.status(400).json({ message: "Identifier required" });
     }
 
-    const value = identifier.trim().toUpperCase();
+    value = value.trim().toUpperCase();
+
     const isPhone = /^[6-9]\d{9}$/.test(value);
-    const isUid = /^HB-[A-Z0-9]+$/.test(value);
+    const isUid = /^HB-[A-Z0-9]{8}$/.test(value);
 
     let user;
 
@@ -116,7 +119,7 @@ router.post("/login/send-otp", async (req, res) => {
     } else if (isUid) {
       user = await prisma.user.findUnique({ where: { healthUid: value } });
     } else {
-      return res.status(400).json({ message: "Invalid identifier" });
+      return res.status(400).json({ message: "Invalid UID or phone number" });
     }
 
     if (!user) {
@@ -134,11 +137,14 @@ router.post("/login/send-otp", async (req, res) => {
       },
     });
 
-    console.log(`PATIENT LOGIN OTP for ${user.phone}: ${otp}`);
+    console.log(`LOGIN OTP for ${user.phone}: ${otp}`);
 
-    res.json({ message: "OTP sent" });
-  } catch (err) {
-    console.error("LOGIN SEND OTP ERROR:", err);
+    res.json({
+      message: "OTP sent",
+      sentTo: user.phone,
+    });
+  } catch (error) {
+    console.error("LOGIN SEND OTP ERROR:", error);
     res.status(500).json({ message: "Failed to send OTP" });
   }
 });

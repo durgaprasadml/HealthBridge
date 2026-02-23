@@ -1,13 +1,12 @@
-import Navbar from "./Navbar";
+import Header from "./Header";
+import Footer from "./Footer";
 
 export default function Layout({ children }) {
   return (
-    <div className="min-h-screen bg-background">
-      <Navbar />
-
-      <main className="flex items-center justify-center py-10 px-4">
-        {children}
-      </main>
-    </div>
+    <>
+      <Header />
+      <main className="pt-24 min-h-screen bg-background">{children}</main>
+      <Footer />
+    </>
   );
 }

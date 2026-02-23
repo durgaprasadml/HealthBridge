@@ -1,10 +1,12 @@
 import Lottie from "lottie-react";
-import animationData from "../assets/medical.json";
+import medicalAnimation from "../assets/medical.json";
 
 export default function MedicalLottie() {
   return (
-    <div className="w-72 mx-auto">
-      <Lottie animationData={animationData} loop />
-    </div>
+    <Lottie
+      animationData={medicalAnimation}
+      loop
+      className="w-full h-full"
+    />
   );
 }
