@@ -12,11 +12,16 @@ export default function PatientLogin() {
 
   const handleSendOtp = async () => {
     setError("");
-    const value = identifier.trim();
+    let value = identifier.trim();
 
     if (!value) {
       setError("Health ID or phone number is required");
       return;
+    }
+
+    // Auto-add HB- prefix if not present and it's not a phone number
+    if (!/^[6-9]\d{9}$/.test(value) && !value.startsWith("HB-")) {
+      value = "HB-" + value.toUpperCase();
     }
 
     setLoading(true);
@@ -43,6 +48,18 @@ export default function PatientLogin() {
     if (e.key === "Enter") {
       handleSendOtp();
     }
+  };
+
+  const handleIdentifierChange = (e) => {
+    let value = e.target.value.toUpperCase();
+    // Keep HB- prefix if user typed it
+    if (!value.startsWith("HB-") && value.length > 0) {
+      // Only add HB- if user hasn't deleted it and is typing alphanumeric
+      if (!/^[6-9]$/.test(value.slice(-1))) {
+        // Let them type freely
+      }
+    }
+    setIdentifier(value);
   };
 
   return (
@@ -73,13 +90,14 @@ export default function PatientLogin() {
               <div className="relative">
                 <User className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" size={20} />
                 <input
-                  className="input pl-10"
+                  className="input pl-10 font-mono"
                   placeholder="HB-XXXXXXX or 9876543210"
                   value={identifier}
-                  onChange={(e) => setIdentifier(e.target.value)}
+                  onChange={handleIdentifierChange}
                   onKeyPress={handleKeyPress}
                 />
               </div>
+              <p className="text-xs text-text-muted mt-1">Enter your unique ID (HB- is added automatically)</p>
             </div>
 
             <button

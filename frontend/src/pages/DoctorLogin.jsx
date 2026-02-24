@@ -22,7 +22,11 @@ export default function DoctorLogin() {
 
     setLoading(true);
     try {
-      const uid = doctorUid.trim().toUpperCase();
+      let uid = doctorUid.trim().toUpperCase();
+      // Auto-add DR- prefix if not present
+      if (!uid.startsWith("DR-")) {
+        uid = "DR-" + uid;
+      }
       const res = await sendDoctorLoginOtp(uid);
 
       if (res) {
@@ -52,7 +56,12 @@ export default function DoctorLogin() {
 
     setLoading(true);
     try {
-      const res = await loginDoctorWithPassword(doctorUid, password);
+      let uid = doctorUid.trim().toUpperCase();
+      // Auto-add DR- prefix if not present
+      if (!uid.startsWith("DR-")) {
+        uid = "DR-" + uid;
+      }
+      const res = await loginDoctorWithPassword(uid, password);
       localStorage.setItem("token", res.token);
       localStorage.setItem("role", "DOCTOR");
       localStorage.setItem("userName", res.doctor?.name || "Doctor");
@@ -117,12 +126,13 @@ export default function DoctorLogin() {
                 <Stethoscope className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" size={20} />
                 <input
                   className="input pl-10 font-mono"
-                  placeholder="DOC-XXXXX"
+                  placeholder="DR-XXXXX"
                   value={doctorUid}
-                  onChange={(e) => setDoctorUid(e.target.value)}
+                  onChange={(e) => setDoctorUid(e.target.value.toUpperCase())}
                   onKeyPress={handleKeyPress}
                 />
               </div>
+              <p className="text-xs text-text-muted mt-1">Enter your unique ID (DR- is added automatically)</p>
             </div>
 
             {mode === "PASSWORD" && (

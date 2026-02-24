@@ -226,6 +226,20 @@ export async function respondToAccess(token, requestId, action) {
   });
 }
 
+export async function getActiveAccesses(token) {
+  return request("/access/active-accesses", {
+    headers: authHeaders(token),
+  });
+}
+
+export async function revokeAccess(token, accessId, accessType) {
+  return request("/access/revoke", {
+    method: "POST",
+    headers: authHeaders(token),
+    body: JSON.stringify({ accessId, accessType }),
+  });
+}
+
 export async function getDoctorAccesses(token) {
   return request("/doctor/accesses", {
     headers: authHeaders(token),

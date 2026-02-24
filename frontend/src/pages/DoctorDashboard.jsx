@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import DashboardLayout from "../components/DashboardLayout";
 import StatCard from "../components/StatsCard";
-import { Search, AlertTriangle, Clock, Users, CheckCircle, Loader2, Shield } from "lucide-react";
-import { getDoctorAccesses, requestEmergencyAccess, requestPatientAccess } from "../services/api";
+import { Search, AlertTriangle, Clock, Users, CheckCircle, Loader2, Shield, Stethoscope } from "lucide-react";
+import { getDoctorAccesses, requestEmergencyAccess, requestPatientAccess, getProfile } from "../services/api";
 
 export default function DoctorDashboard() {
   const [patientUid, setPatientUid] = useState("");
@@ -13,6 +13,7 @@ export default function DoctorDashboard() {
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
   const [recentAccesses, setRecentAccesses] = useState([]);
+  const [doctorProfile, setDoctorProfile] = useState(null);
   const token = localStorage.getItem("token");
 
   const loadAccesses = async () => {
@@ -26,7 +27,16 @@ export default function DoctorDashboard() {
   };
 
   useEffect(() => {
+    const loadProfile = async () => {
+      try {
+        const data = await getProfile(token);
+        setDoctorProfile(data.doctor);
+      } catch (err) {
+        console.error("Error loading profile:", err);
+      }
+    };
     loadAccesses();
+    loadProfile();
   }, []);
 
   const submitAccessRequest = async (e) => {
@@ -36,7 +46,12 @@ export default function DoctorDashboard() {
     setError(null);
 
     try {
-      const uid = patientUid.trim().toUpperCase();
+      let uid = patientUid.trim().toUpperCase();
+      // Auto-add HB- prefix if not present and it's not a phone number
+      if (!/^[6-9]\d{9}$/.test(uid) && !uid.startsWith("HB-")) {
+        uid = "HB-" + uid;
+      }
+      
       const res =
         mode === "EMERGENCY"
           ? await requestEmergencyAccess(token, uid, reason || "Emergency treatment required")
@@ -66,6 +81,27 @@ export default function DoctorDashboard() {
 
   return (
     <DashboardLayout title="Doctor Dashboard">
+      {/* Doctor Info Header */}
+      {doctorProfile && (
+        <div className="bg-gradient-to-r from-primary-600 to-primary-700 rounded-xl p-6 mb-6 text-white">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 bg-white/20 rounded-full flex items-center justify-center">
+                <Stethoscope size={28} className="text-white" />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold">{doctorProfile.name}</h2>
+                <p className="text-primary-100 text-sm">{doctorProfile.hospital?.name}</p>
+              </div>
+            </div>
+            <div className="bg-white/20 rounded-lg px-4 py-2">
+              <p className="text-xs text-primary-100 uppercase tracking-wide">Doctor ID</p>
+              <p className="text-lg font-mono font-bold">{doctorProfile.doctorUid}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         {stats.map((stat, index) => (
           <div key={index} className={`stagger-${index + 1}`} style={{ animationDelay: `${index * 0.1}s` }}>
@@ -110,13 +146,14 @@ export default function DoctorDashboard() {
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" size={20} />
                 <input
                   type="text"
-                  className="input pl-10"
+                  className="input pl-10 font-mono"
                   placeholder="HB-XXXXXXXX"
                   value={patientUid}
-                  onChange={(e) => setPatientUid(e.target.value)}
+                  onChange={(e) => setPatientUid(e.target.value.toUpperCase())}
                   required
                 />
               </div>
+              <p className="text-xs text-text-muted mt-1">HB- is added automatically</p>
             </div>
 
             {mode === "STANDARD" ? (
