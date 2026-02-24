@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
 import DashboardLayout from "../components/DashboardLayout";
 import StatCard from "../components/StatsCard";
-import { Search, Users, Clock, Shield, AlertCircle, UserPlus, Loader2 } from "lucide-react";
-import { createDoctor, getHospitalActiveAccess, getHospitalDoctors } from "../services/api";
+import { Search, Users, Clock, Shield, AlertCircle, UserPlus, Loader2, Building2 } from "lucide-react";
+import { createDoctor, getHospitalActiveAccess, getHospitalDoctors, getHospitalProfile } from "../services/api";
 
 export default function HospitalDashboard() {
   const [accesses, setAccesses] = useState([]);
   const [doctors, setDoctors] = useState([]);
+  const [hospital, setHospital] = useState(null);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterType, setFilterType] = useState("all");
@@ -26,12 +27,14 @@ export default function HospitalDashboard() {
     if (!token) return;
     setLoading(true);
     try {
-      const [accessData, doctorData] = await Promise.all([
+      const [accessData, doctorData, hospitalData] = await Promise.all([
         getHospitalActiveAccess(token),
         getHospitalDoctors(token),
+        getHospitalProfile(token),
       ]);
       setAccesses(accessData.activeAccesses || []);
       setDoctors(doctorData.doctors || []);
+      setHospital(hospitalData.hospital || null);
     } catch {
       setAccesses([]);
       setDoctors([]);
@@ -90,6 +93,27 @@ export default function HospitalDashboard() {
 
   return (
     <DashboardLayout title="Hospital Dashboard">
+      {/* Hospital Info Header */}
+      {hospital && (
+        <div className="bg-gradient-to-r from-primary-600 to-primary-700 rounded-xl p-6 mb-6 text-white">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 bg-white/20 rounded-full flex items-center justify-center">
+                <Building2 size={28} className="text-white" />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold">{hospital.name}</h2>
+                <p className="text-primary-100 text-sm">{hospital.location}</p>
+              </div>
+            </div>
+            <div className="bg-white/20 rounded-lg px-4 py-2">
+              <p className="text-xs text-primary-100 uppercase tracking-wide">Hospital ID</p>
+              <p className="text-lg font-mono font-bold">{hospital.hospitalUid || "N/A"}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         {stats.map((stat, index) => (
           <div key={index} className={`stagger-${index + 1}`} style={{ animationDelay: `${index * 0.1}s` }}>

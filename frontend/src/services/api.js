@@ -127,6 +127,12 @@ export async function getHospitalDoctors(token) {
   });
 }
 
+export async function getHospitalProfile(token) {
+  return request("/hospital/profile", {
+    headers: authHeaders(token),
+  });
+}
+
 export async function getHospitalActiveAccess(token) {
   return request("/access/hospital/active-access", {
     headers: authHeaders(token),

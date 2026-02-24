@@ -102,7 +102,17 @@ router.post("/login", async (req, res) => {
       ? { phone: normalized }
       : { hospitalUid: normalized.toUpperCase() };
 
-    const hospital = await prisma.hospital.findUnique({ where });
+    let hospital = await prisma.hospital.findUnique({ where });
+    
+    // If hospital not found by identifier, check if it's a phone/email that exists
+    if (!hospital && (normalized.includes("@") || /^[6-9]\d{9}$/.test(normalized))) {
+      // Try to find by phone or email directly
+      const searchKey = normalized.includes("@") 
+        ? { email: normalized.toLowerCase() } 
+        : { phone: normalized };
+      hospital = await prisma.hospital.findFirst({ where: searchKey });
+    }
+    
     if (!hospital || !hospital.passwordHash) {
       return res.status(401).json({ message: "Invalid credentials" });
     }
@@ -110,6 +120,18 @@ router.post("/login", async (req, res) => {
     const ok = await bcrypt.compare(password, hospital.passwordHash);
     if (!ok) {
       return res.status(401).json({ message: "Invalid credentials" });
+    }
+
+    // Generate hospitalUid if it doesn't exist (for old records)
+    if (!hospital.hospitalUid) {
+      let newHospitalUid = generateHospitalUid();
+      while (await prisma.hospital.findUnique({ where: { hospitalUid: newHospitalUid } })) {
+        newHospitalUid = generateHospitalUid();
+      }
+      hospital = await prisma.hospital.update({
+        where: { id: hospital.id },
+        data: { hospitalUid: newHospitalUid },
+      });
     }
 
     const token = jwt.sign(

@@ -95,4 +95,35 @@ router.get("/doctors", verifyToken, verifyHospital, async (req, res) => {
   }
 });
 
+/**
+ * HOSPITAL → GET PROFILE
+ */
+router.get("/profile", verifyToken, verifyHospital, async (req, res) => {
+  try {
+    const { hospitalId } = req.user;
+    const hospital = await prisma.hospital.findUnique({
+      where: { id: hospitalId },
+      select: {
+        id: true,
+        name: true,
+        location: true,
+        hospitalUid: true,
+        adminName: true,
+        phone: true,
+        email: true,
+        createdAt: true,
+      },
+    });
+
+    if (!hospital) {
+      return res.status(404).json({ message: "Hospital not found" });
+    }
+
+    res.json({ hospital });
+  } catch (err) {
+    console.error("HOSPITAL PROFILE ERROR:", err);
+    res.status(500).json({ message: "Failed to fetch hospital profile" });
+  }
+});
+
 export default router;
