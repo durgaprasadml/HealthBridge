@@ -23,8 +23,8 @@ export default function DoctorLogin() {
     setLoading(true);
     try {
       let uid = doctorUid.trim().toUpperCase();
-      // Auto-add DR- prefix if not present
-      if (!uid.startsWith("DR-")) {
+      // Auto-add DR- prefix if not present (also accept DOC- for backward compatibility)
+      if (!uid.startsWith("DR-") && !uid.startsWith("DOC-")) {
         uid = "DR-" + uid;
       }
       const res = await sendDoctorLoginOtp(uid);
@@ -57,8 +57,8 @@ export default function DoctorLogin() {
     setLoading(true);
     try {
       let uid = doctorUid.trim().toUpperCase();
-      // Auto-add DR- prefix if not present
-      if (!uid.startsWith("DR-")) {
+      // Auto-add DR- prefix if not present (also accept DOC- for backward compatibility)
+      if (!uid.startsWith("DR-") && !uid.startsWith("DOC-")) {
         uid = "DR-" + uid;
       }
       const res = await loginDoctorWithPassword(uid, password);

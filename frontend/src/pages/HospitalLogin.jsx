@@ -15,14 +15,21 @@ export default function HospitalLogin() {
     e.preventDefault();
     setError("");
 
-    if (!identifier.trim() || !password) {
+    let value = identifier.trim();
+    
+    // Auto-add HOSP- prefix if not present
+    if (value && !value.startsWith("HOSP-") && !value.includes("@") && !/^[6-9]\d{9}$/.test(value)) {
+      value = "HOSP-" + value.toUpperCase();
+    }
+
+    if (!value || !password) {
       setError("Hospital ID/email/phone and password are required");
       return;
     }
 
     setLoading(true);
     try {
-      const res = await loginHospital(identifier, password);
+      const res = await loginHospital(value, password);
       localStorage.setItem("token", res.token);
       localStorage.setItem("role", "HOSPITAL");
       localStorage.setItem("userName", res.hospital?.name || "Hospital");
@@ -71,10 +78,11 @@ export default function HospitalLogin() {
                   className="input pl-10 font-mono"
                   placeholder="HOSP-XXXXXX or admin@hospital.com"
                   value={identifier}
-                  onChange={(e) => setIdentifier(e.target.value)}
+                  onChange={(e) => setIdentifier(e.target.value.toUpperCase())}
                   onKeyPress={handleKeyPress}
                 />
               </div>
+              <p className="text-xs text-text-muted mt-1">Enter your unique ID (HOSP- is added automatically)</p>
             </div>
 
             <div>
