@@ -9,6 +9,9 @@ import medicalRoutes from "./routes/medical.routes.js";
 import profileRoutes from "./routes/profile.routes.js";
 import reminderRoutes from "./routes/reminder.routes.js";
 import emergencyRoutes from "./routes/emergency.routes.js";
+import doctorAuthRoutes from "./routes/doctor.auth.routes.js";
+import doctorRoutes from "./routes/doctor.routes.js";
+import accessRoutes from "./routes/access.routes.js";
 
 dotenv.config();
 
@@ -26,6 +29,9 @@ app.use("/medical", medicalRoutes);
 app.use("/profile", profileRoutes);
 app.use("/reminder", reminderRoutes);
 app.use("/emergency", emergencyRoutes);
+app.use("/doctor", doctorAuthRoutes);
+app.use("/doctor", doctorRoutes);
+app.use("/access", accessRoutes);
 
 app.get("/", (req, res) => {
   res.send("HealthBridge API running");
