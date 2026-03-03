@@ -5,13 +5,13 @@ export default function AuthCard({ title, subtitle, children, showTabs = true })
   return (
     <div className="w-full max-w-md">
       {/* Logo */}
-      <div className="flex justify-center mb-6">
-        <div className="flex items-center gap-2">
-          <div className="w-12 h-12 rounded-xl bg-primary-500 flex items-center justify-center text-white">
-            <Shield size={24} />
-          </div>
-          <span className="text-2xl font-bold text-text-primary">HealthBridge</span>
-        </div>
+      <div className="flex justify-center mb-8 animate-fade-in">
+        <Link to="/" className="flex items-center gap-3 hover:opacity-90 transition-opacity">
+          <img src="/logo.png" alt="HealthBridge Logo" className="w-14 h-14 object-contain drop-shadow mix-blend-multiply" />
+          <span className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-primary-600 to-primary-800 tracking-tight">
+            HealthBridge
+          </span>
+        </Link>
       </div>
 
       <h1 className="text-2xl font-bold text-center text-text-primary mb-2">

@@ -3,11 +3,11 @@ export default function Footer() {
     <footer className="bg-white border-t mt-20">
       <div className="max-w-7xl mx-auto px-6 py-14 grid md:grid-cols-3 gap-10">
         <div>
-          <div className="flex items-center gap-2 mb-4">
-            <div className="w-9 h-9 rounded-lg bg-primary flex items-center justify-center text-white">
-              🛡️
-            </div>
-            <span className="font-semibold text-lg">HealthBridge</span>
+          <div className="flex items-center gap-3 mb-6">
+            <img src="/logo.png" alt="HealthBridge Logo" className="w-10 h-10 object-contain mix-blend-multiply drop-shadow-sm" />
+            <span className="text-xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-primary-600 to-primary-800 tracking-tight">
+              HealthBridge
+            </span>
           </div>
           <p className="text-gray-600 text-sm">
             Securely connect patients, doctors, and hospitals using one unified
