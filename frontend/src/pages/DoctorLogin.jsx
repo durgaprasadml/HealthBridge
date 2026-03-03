@@ -1,30 +1,34 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import AuthCard from "../components/AuthCard";
-import { sendLoginOtp } from "../services/api";
-import { Stethoscope, Loader2, ArrowLeft } from "lucide-react";
+import { sendDoctorLoginOtp, loginDoctorWithPassword } from "../services/api";
+import { Stethoscope, Loader2, ArrowLeft, Lock } from "lucide-react";
+import toast from "react-hot-toast";
 
 export default function DoctorLogin() {
   const [doctorUid, setDoctorUid] = useState("");
-  const [error, setError] = useState("");
+  const [password, setPassword] = useState("");
+  const [mode, setMode] = useState("OTP");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleSendOtp = async () => {
-    setError("");
-
     if (!doctorUid.trim()) {
-      setError("Doctor UID is required");
+      toast.error("Doctor UID is required");
       return;
     }
 
     setLoading(true);
     try {
-      const uid = doctorUid.trim().toUpperCase();
-      const res = await sendLoginOtp(uid);
+      let uid = doctorUid.trim().toUpperCase();
+      // Auto-add DR- prefix if not present (also accept DOC- for backward compatibility)
+      if (!uid.startsWith("DR-") && !uid.startsWith("DOC-")) {
+        uid = "DR-" + uid;
+      }
+      const res = await sendDoctorLoginOtp(uid);
 
       if (res) {
-        // doctor endpoint doesn't return sentTo, so just pass the UID
+        toast.success("OTP sent to your registered number!");
         navigate("/verify-otp", {
           state: {
             identifier: uid,
@@ -32,10 +36,36 @@ export default function DoctorLogin() {
           },
         });
       } else {
-        setError(res?.message || "Failed to send OTP. Please check your Doctor UID.");
+        toast.error(res?.message || "Failed to send OTP. Please check your Doctor UID.");
       }
-    } catch {
-      setError("Server error. Please try again.");
+    } catch (err) {
+      toast.error(err.message || "Server error. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePasswordLogin = async () => {
+    if (!doctorUid.trim() || !password) {
+      toast.error("Doctor UID and password are required");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      let uid = doctorUid.trim().toUpperCase();
+      // Auto-add DR- prefix if not present (also accept DOC- for backward compatibility)
+      if (!uid.startsWith("DR-") && !uid.startsWith("DOC-")) {
+        uid = "DR-" + uid;
+      }
+      const res = await loginDoctorWithPassword(uid, password);
+      localStorage.setItem("token", res.token);
+      localStorage.setItem("role", "DOCTOR");
+      localStorage.setItem("userName", res.doctor?.name || "Doctor");
+      toast.success("Login successful!");
+      navigate("/doctor");
+    } catch (err) {
+      toast.error(err.message || "Login failed");
     } finally {
       setLoading(false);
     }
@@ -43,7 +73,8 @@ export default function DoctorLogin() {
 
   const handleKeyPress = (e) => {
     if (e.key === "Enter") {
-      handleSendOtp();
+      if (mode === "OTP") handleSendOtp();
+      else handlePasswordLogin();
     }
   };
 
@@ -65,9 +96,26 @@ export default function DoctorLogin() {
 
         <AuthCard
           title="Doctor Login"
-          subtitle="Enter your Doctor UID to continue"
+          subtitle="Login using OTP or password"
         >
           <div className="space-y-4">
+            <div className="flex rounded-lg bg-gray-100 p-1">
+              <button
+                type="button"
+                onClick={() => setMode("OTP")}
+                className={`flex-1 py-2 text-sm rounded-md ${mode === "OTP" ? "bg-white shadow text-primary-600" : "text-text-secondary"}`}
+              >
+                OTP
+              </button>
+              <button
+                type="button"
+                onClick={() => setMode("PASSWORD")}
+                className={`flex-1 py-2 text-sm rounded-md ${mode === "PASSWORD" ? "bg-white shadow text-primary-600" : "text-text-secondary"}`}
+              >
+                Password
+              </button>
+            </div>
+
             <div>
               <label className="block text-sm font-medium text-text-primary mb-2">
                 Doctor UID
@@ -76,35 +124,62 @@ export default function DoctorLogin() {
                 <Stethoscope className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" size={20} />
                 <input
                   className="input pl-10 font-mono"
-                  placeholder="DOC-XXXXX"
+                  placeholder="DR-XXXXX"
                   value={doctorUid}
-                  onChange={(e) => setDoctorUid(e.target.value)}
+                  onChange={(e) => setDoctorUid(e.target.value.toUpperCase())}
                   onKeyPress={handleKeyPress}
                 />
               </div>
+              <p className="text-xs text-text-muted mt-1">Enter your unique ID (DR- is added automatically)</p>
             </div>
 
+            {mode === "PASSWORD" && (
+              <div>
+                <label className="block text-sm font-medium text-text-primary mb-2">
+                  Password
+                </label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" size={20} />
+                  <input
+                    type="password"
+                    className="input pl-10"
+                    placeholder="Enter password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    onKeyPress={handleKeyPress}
+                  />
+                </div>
+              </div>
+            )}
+
             <button
-              onClick={handleSendOtp}
+              onClick={mode === "OTP" ? handleSendOtp : handlePasswordLogin}
               disabled={loading}
               className="btn btn-primary w-full py-3"
             >
               {loading ? (
                 <>
                   <Loader2 size={20} className="animate-spin" />
-                  Sending OTP...
+                  Please wait...
                 </>
               ) : (
-                "Send OTP"
+                mode === "OTP" ? "Send OTP" : "Login"
               )}
             </button>
 
-            {error && (
-              <p className="text-error text-sm text-center bg-red-50 p-3 rounded-lg">{error}</p>
-            )}
+            <p className="text-center text-sm text-text-secondary mt-4">
+              New doctor?{" "}
+              <button
+                type="button"
+                onClick={() => navigate("/register/doctor")}
+                className="text-primary-500 font-medium hover:underline"
+              >
+                Register here
+              </button>
+            </p>
 
             <p className="text-center text-sm text-text-secondary mt-4">
-              Doctors are created by hospitals. Contact your hospital administrator to get your Doctor UID.
+              If your hospital already created your account, use your Doctor UID to sign in.
             </p>
           </div>
         </AuthCard>
@@ -112,4 +187,3 @@ export default function DoctorLogin() {
     </div>
   );
 }
-

@@ -1,30 +1,82 @@
 import { useEffect, useState } from "react";
 import DashboardLayout from "../components/DashboardLayout";
 import StatCard from "../components/StatsCard";
-import { Search, Users, Clock, Building2, Filter, MoreVertical, Shield, AlertCircle } from "lucide-react";
+import { Search, Users, Clock, Shield, AlertCircle, UserPlus, Loader2, Building2, X } from "lucide-react";
+import { createDoctor, getHospitalActiveAccess, getHospitalDoctors, getHospitalProfile } from "../services/api";
+import toast from "react-hot-toast";
 
 export default function HospitalDashboard() {
   const [accesses, setAccesses] = useState([]);
+  const [doctors, setDoctors] = useState([]);
+  const [hospital, setHospital] = useState(null);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterType, setFilterType] = useState("all");
+  const [createLoading, setCreateLoading] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [formData, setFormData] = useState({
+    name: "",
+    phone: "",
+    specialization: "",
+    password: "",
+  });
+
   const token = localStorage.getItem("token");
 
+  const loadData = async () => {
+    if (!token) return;
+    setLoading(true);
+    try {
+      const [accessData, doctorData, hospitalData] = await Promise.all([
+        getHospitalActiveAccess(token),
+        getHospitalDoctors(token),
+        getHospitalProfile(token),
+      ]);
+      setAccesses(accessData.activeAccesses || []);
+      setDoctors(doctorData.doctors || []);
+      setHospital(hospitalData.hospital || null);
+    } catch {
+      setAccesses([]);
+      setDoctors([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    fetch("http://localhost:5050/hospital/active-access", {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then((res) => res.json())
-      .then((d) => {
-        setAccesses(d.activeAccesses || []);
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
+    loadData();
   }, []);
 
-  // Filter accesses
+  const handleCreateDoctor = async (e) => {
+    e.preventDefault();
+
+    if (!formData.name.trim() || !formData.phone.trim() || !formData.password) {
+      toast.error("Name, phone and password are required");
+      return;
+    }
+
+    setCreateLoading(true);
+    try {
+      const res = await createDoctor(token, {
+        name: formData.name.trim(),
+        phone: formData.phone.trim(),
+        specialization: formData.specialization.trim(),
+        password: formData.password,
+      });
+
+      toast.success(`Doctor created successfully! UID: ${res.doctor?.doctorUid}`);
+      setFormData({ name: "", phone: "", specialization: "", password: "" });
+      setIsModalOpen(false);
+      await loadData();
+    } catch (err) {
+      toast.error(err.message || "Failed to create doctor");
+    } finally {
+      setCreateLoading(false);
+    }
+  };
+
   const filteredAccesses = accesses.filter((access) => {
-    const matchesSearch = 
+    const matchesSearch =
       access.doctor?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       access.patient?.healthUid?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesFilter = filterType === "all" || access.type === filterType;
@@ -32,26 +84,115 @@ export default function HospitalDashboard() {
   });
 
   const stats = [
-    { title: "Active Accesses", value: accesses.length, icon: Shield, color: "primary" },
-    { title: "Doctors", value: [...new Set(accesses.map(a => a.doctor?.id))].length, icon: Users, color: "success" },
-    { title: "Emergency", value: accesses.filter(a => a.type === "EMERGENCY").length, icon: AlertCircle, color: "error" },
-    { title: "Standard", value: accesses.filter(a => a.type === "STANDARD").length, icon: Clock, color: "info" },
+    { title: "Doctors", value: doctors.length, icon: Users, color: "primary" },
+    { title: "Active Accesses", value: accesses.length, icon: Shield, color: "success" },
+    { title: "Emergency", value: accesses.filter((a) => a.type === "EMERGENCY").length, icon: AlertCircle, color: "error" },
+    { title: "Standard", value: accesses.filter((a) => a.type === "STANDARD").length, icon: Clock, color: "info" },
   ];
-
-  const getStatusBadge = (type) => {
-    switch (type) {
-      case "EMERGENCY":
-        return <span className="badge badge-error">Emergency</span>;
-      case "STANDARD":
-        return <span className="badge badge-info">Standard</span>;
-      default:
-        return <span className="badge badge-warning">{type}</span>;
-    }
-  };
 
   return (
     <DashboardLayout title="Hospital Dashboard">
-      {/* Stats Row */}
+      {/* Hospital Info Header */}
+      {hospital && (
+        <div className="bg-gradient-to-r from-primary-600 to-primary-700 rounded-xl p-6 mb-6 text-white">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 bg-white/20 rounded-full flex items-center justify-center">
+                <Building2 size={28} className="text-white" />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold">{hospital.name}</h2>
+                <p className="text-primary-100 text-sm">{hospital.location}</p>
+              </div>
+            </div>
+            <div className="flex bg-white/20 items-center justify-between rounded-lg px-4 py-2 gap-4">
+              <div>
+                <p className="text-xs text-primary-100 uppercase tracking-wide">Hospital ID</p>
+                <p className="text-lg font-mono font-bold">{hospital.hospitalUid || "N/A"}</p>
+              </div>
+              <button
+                onClick={() => setIsModalOpen(true)}
+                className="btn bg-white text-primary-600 hover:bg-primary-50 px-4 py-2 flex items-center gap-2 shadow-sm whitespace-nowrap"
+              >
+                <UserPlus size={18} />
+                Add Doctor
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Doctor Modal */}
+      {isModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden" style={{ animation: "fadeIn 0.2s ease-out" }}>
+            <div className="flex items-center justify-between p-6 border-b border-gray-100">
+              <h2 className="text-xl font-bold flex items-center gap-2 text-text-primary">
+                <UserPlus size={22} className="text-primary-600" />
+                Create Doctor Profile
+              </h2>
+              <button onClick={() => setIsModalOpen(false)} className="text-text-muted hover:text-text-primary transition">
+                <X size={24} />
+              </button>
+            </div>
+            <form onSubmit={handleCreateDoctor} className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-text-secondary mb-1">Doctor Name *</label>
+                <input
+                  className="input w-full"
+                  placeholder="e.g. Dr. John Doe"
+                  value={formData.name}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-text-secondary mb-1">Phone Number *</label>
+                <input
+                  className="input w-full"
+                  placeholder="10-digit mobile"
+                  value={formData.phone}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, phone: e.target.value.replace(/\D/g, "").slice(0, 10) }))}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-text-secondary mb-1">Specialization</label>
+                <input
+                  className="input w-full"
+                  placeholder="e.g. Cardiologist"
+                  value={formData.specialization}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, specialization: e.target.value }))}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-text-secondary mb-1">Initial Password *</label>
+                <input
+                  type="password"
+                  className="input w-full"
+                  placeholder="Create a password"
+                  value={formData.password}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, password: e.target.value }))}
+                />
+              </div>
+
+              <div className="pt-4 flex gap-3">
+                <button type="button" onClick={() => setIsModalOpen(false)} className="btn bg-gray-100 text-gray-700 hover:bg-gray-200 flex-1">
+                  Cancel
+                </button>
+                <button type="submit" disabled={createLoading} className="btn btn-primary flex-1">
+                  {createLoading ? (
+                    <>
+                      <Loader2 size={18} className="animate-spin inline mr-2" /> Creating...
+                    </>
+                  ) : (
+                    "Create Account"
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         {stats.map((stat, index) => (
           <div key={index} className={`stagger-${index + 1}`} style={{ animationDelay: `${index * 0.1}s` }}>
@@ -60,20 +201,46 @@ export default function HospitalDashboard() {
         ))}
       </div>
 
-      {/* Active Accesses Table */}
+      <div className="grid grid-cols-1 gap-6 mb-8">
+
+        <div className="bg-white rounded-xl shadow-card overflow-hidden">
+          <div className="p-6 border-b border-border">
+            <h2 className="text-lg font-semibold text-text-primary">Doctors</h2>
+            <p className="text-sm text-text-secondary mt-1">Doctors created by your hospital</p>
+          </div>
+          {loading ? (
+            <div className="p-8 text-center text-text-secondary">Loading doctors...</div>
+          ) : doctors.length === 0 ? (
+            <div className="p-8 text-center text-text-secondary">No doctors created yet.</div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-6 overflow-y-auto max-h-[500px]">
+              {doctors.map((doctor) => (
+                <div key={doctor.id} className="border border-gray-100 rounded-xl p-4 flex items-center justify-between hover:border-primary-200 transition bg-gray-50/50">
+                  <div>
+                    <h3 className="font-semibold text-text-primary text-lg">{doctor.name}</h3>
+                    <p className="text-sm text-primary-600 font-medium mb-1">{doctor.specialization || "General"}</p>
+                    <p className="text-xs text-text-secondary flex items-center gap-1"><Shield size={12} /> {doctor.doctorUid}</p>
+                  </div>
+                  <div className="bg-white shadow-sm border border-gray-100 rounded-lg px-3 py-2 text-center">
+                    <p className="text-[10px] text-text-muted uppercase tracking-wider font-semibold mb-1">Phone</p>
+                    <p className="text-sm font-mono text-text-primary">{doctor.phone}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
       <div className="bg-white rounded-xl shadow-card overflow-hidden">
-        {/* Table Header */}
         <div className="p-6 border-b border-border">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
               <h2 className="text-lg font-semibold text-text-primary">Active Accesses</h2>
-              <p className="text-sm text-text-secondary mt-1">
-                Monitor all active patient record accesses in your hospital
-              </p>
+              <p className="text-sm text-text-secondary mt-1">Monitor active patient record accesses</p>
             </div>
-            
+
             <div className="flex flex-col sm:flex-row gap-3">
-              {/* Search */}
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" size={18} />
                 <input
@@ -85,24 +252,19 @@ export default function HospitalDashboard() {
                 />
               </div>
 
-              {/* Filter */}
-              <div className="relative">
-                <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" size={18} />
-                <select
-                  className="input pl-10 pr-8 py-2 appearance-none cursor-pointer"
-                  value={filterType}
-                  onChange={(e) => setFilterType(e.target.value)}
-                >
-                  <option value="all">All Types</option>
-                  <option value="EMERGENCY">Emergency</option>
-                  <option value="STANDARD">Standard</option>
-                </select>
-              </div>
+              <select
+                className="input py-2"
+                value={filterType}
+                onChange={(e) => setFilterType(e.target.value)}
+              >
+                <option value="all">All Types</option>
+                <option value="EMERGENCY">Emergency</option>
+                <option value="STANDARD">Standard</option>
+              </select>
             </div>
           </div>
         </div>
 
-        {/* Table Content */}
         {loading ? (
           <div className="p-12 text-center">
             <div className="animate-spin w-8 h-8 border-4 border-primary-500 border-t-transparent rounded-full mx-auto"></div>
@@ -110,14 +272,9 @@ export default function HospitalDashboard() {
           </div>
         ) : filteredAccesses.length === 0 ? (
           <div className="p-12 text-center">
-            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Shield size={32} className="text-text-muted" />
-            </div>
             <h3 className="text-lg font-semibold text-text-primary mb-2">No Active Accesses</h3>
             <p className="text-text-secondary max-w-sm mx-auto">
-              {searchTerm || filterType !== "all" 
-                ? "No accesses match your search criteria."
-                : "There are currently no active patient record accesses."}
+              {searchTerm || filterType !== "all" ? "No accesses match your search." : "There are currently no active accesses."}
             </p>
           </div>
         ) : (
@@ -130,63 +287,32 @@ export default function HospitalDashboard() {
                   <th>Type</th>
                   <th>Started</th>
                   <th>Expires</th>
-                  <th>Status</th>
                 </tr>
               </thead>
               <tbody>
-                {filteredAccesses.map((access, index) => (
-                  <tr 
-                    key={access.id || index}
-                    className="animate-fade-in"
-                    style={{ animationDelay: `${index * 0.03}s` }}
-                  >
+                {filteredAccesses.map((access) => (
+                  <tr key={access.id}>
                     <td>
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center text-primary-600 font-medium">
-                          {access.doctor?.name?.charAt(0) || "D"}
-                        </div>
-                        <div>
-                          <p className="font-medium text-text-primary">
-                            {access.doctor?.name || "Unknown"}
-                          </p>
-                          <p className="text-xs text-text-muted">
-                            {access.doctor?.doctorUid || "N/A"}
-                          </p>
-                        </div>
-                      </div>
+                      <p className="font-medium text-text-primary">{access.doctor?.name || "Unknown"}</p>
+                      <p className="text-xs text-text-muted">{access.doctor?.doctorUid || "N/A"}</p>
                     </td>
                     <td>
-                      <code className="bg-gray-100 px-2 py-1 rounded text-sm font-mono">
-                        {access.patient?.healthUid || "N/A"}
-                      </code>
-                    </td>
-                    <td>{getStatusBadge(access.type)}</td>
-                    <td className="text-text-secondary">
-                      {access.createdAt ? new Date(access.createdAt).toLocaleString() : "N/A"}
-                    </td>
-                    <td className="text-text-secondary">
-                      {access.expiresAt ? new Date(access.expiresAt).toLocaleString() : "N/A"}
+                      <code className="bg-gray-100 px-2 py-1 rounded text-sm font-mono">{access.patient?.healthUid || "N/A"}</code>
                     </td>
                     <td>
-                      <span className="badge badge-success">Active</span>
+                      <span className={`badge ${access.type === "EMERGENCY" ? "badge-error" : "badge-info"}`}>
+                        {access.type}
+                      </span>
                     </td>
+                    <td className="text-text-secondary">{access.createdAt ? new Date(access.createdAt).toLocaleString() : "N/A"}</td>
+                    <td className="text-text-secondary">{access.expiresAt ? new Date(access.expiresAt).toLocaleString() : "N/A"}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
         )}
-
-        {/* Table Footer */}
-        {filteredAccesses.length > 0 && (
-          <div className="px-6 py-4 border-t border-border bg-gray-50">
-            <p className="text-sm text-text-secondary">
-              Showing {filteredAccesses.length} of {accesses.length} active accesses
-            </p>
-          </div>
-        )}
       </div>
     </DashboardLayout>
   );
 }
-

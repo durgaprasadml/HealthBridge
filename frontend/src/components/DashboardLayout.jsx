@@ -17,16 +17,15 @@ const menuItems = {
   PATIENT: [
     { icon: LayoutDashboard, label: "Dashboard", path: "/patient" },
     { icon: Shield, label: "Access Requests", path: "/patient" },
+    { icon: Users, label: "My Records", path: "/patient/records" },
+    { icon: Stethoscope, label: "Profile", path: "/patient/profile" },
   ],
   DOCTOR: [
     { icon: LayoutDashboard, label: "Dashboard", path: "/doctor" },
-    { icon: Users, label: "My Patients", path: "/doctor" },
-    { icon: Stethoscope, label: "Emergency Access", path: "/doctor" },
+    { icon: Stethoscope, label: "Add Record", path: "/doctor/add-record" },
   ],
   HOSPITAL: [
     { icon: LayoutDashboard, label: "Dashboard", path: "/hospital" },
-    { icon: Building2, label: "Manage Doctors", path: "/hospital" },
-    { icon: Users, label: "Access Log", path: "/hospital" },
   ],
 };
 
@@ -164,4 +163,3 @@ export default function DashboardLayout({ children, title }) {
     </div>
   );
 }
-

@@ -68,7 +68,10 @@ router.get("/requests", verifyToken, async (req, res) => {
     }
 
     const requests = await prisma.accessRequest.findMany({
-      where: { patientId: userId },
+      where: {
+        patientId: userId,
+        status: "PENDING",
+      },
       include: {
         doctor: {
           select: { name: true, doctorUid: true },
@@ -81,6 +84,146 @@ router.get("/requests", verifyToken, async (req, res) => {
   } catch (err) {
     console.error("FETCH REQUESTS ERROR:", err);
     res.status(500).json({ message: "Failed to fetch requests" });
+  }
+});
+
+/* =====================================================
+   PATIENT → VIEW ACTIVE ACCESSES
+===================================================== */
+router.get("/active-accesses", verifyToken, async (req, res) => {
+  try {
+    const { role, userId } = req.user;
+
+    if (role !== "PATIENT") {
+      return res.status(403).json({ message: "Only patients allowed" });
+    }
+
+    const now = new Date();
+
+    // Get approved normal accesses
+    const normalAccesses = await prisma.accessRequest.findMany({
+      where: {
+        patientId: userId,
+        status: "APPROVED",
+        expiresAt: { gt: now },
+      },
+      include: {
+        doctor: {
+          select: { name: true, doctorUid: true, specialization: true },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    // Get active emergency accesses
+    const emergencyAccesses = await prisma.emergencyAccess.findMany({
+      where: {
+        patientId: userId,
+        status: "ACTIVE",
+        expiresAt: { gt: now },
+      },
+      include: {
+        doctor: {
+          select: { name: true, doctorUid: true, specialization: true },
+        },
+        hospital: {
+          select: { name: true, hospitalUid: true },
+        },
+      },
+      orderBy: { startedAt: "desc" },
+    });
+
+    res.json({
+      activeAccesses: [
+        ...normalAccesses.map((a) => ({
+          id: a.id,
+          type: "STANDARD",
+          doctor: a.doctor,
+          startedAt: a.createdAt,
+          expiresAt: a.expiresAt,
+        })),
+        ...emergencyAccesses.map((e) => ({
+          id: e.id,
+          type: "EMERGENCY",
+          doctor: e.doctor,
+          hospital: e.hospital,
+          reason: e.reason,
+          startedAt: e.startedAt,
+          expiresAt: e.expiresAt,
+        })),
+      ],
+    });
+  } catch (err) {
+    console.error("FETCH ACTIVE ACCESSES ERROR:", err);
+    res.status(500).json({ message: "Failed to fetch active accesses" });
+  }
+});
+
+/* =====================================================
+   PATIENT → REVOKE ACCESS
+===================================================== */
+router.post("/revoke", verifyToken, async (req, res) => {
+  try {
+    const { role, userId } = req.user;
+    const { accessId, accessType } = req.body; // accessType: 'normal' or 'emergency'
+
+    if (role !== "PATIENT") {
+      return res.status(403).json({ message: "Only patients allowed" });
+    }
+
+    if (!accessId || !accessType) {
+      return res.status(400).json({ message: "accessId and accessType required" });
+    }
+
+    if (accessType === "normal") {
+      const request = await prisma.accessRequest.findUnique({
+        where: { id: accessId },
+      });
+
+      if (!request || request.patientId !== userId) {
+        return res.status(404).json({ message: "Access request not found" });
+      }
+
+      await prisma.accessRequest.update({
+        where: { id: accessId },
+        data: { status: "REVOKED" },
+      });
+
+      await auditLog({
+        actorRole: "PATIENT",
+        actorId: userId,
+        action: "REVOKE_ACCESS",
+        targetId: request.doctorId,
+      });
+    } else if (accessType === "emergency") {
+      const emergency = await prisma.emergencyAccess.findUnique({
+        where: { id: accessId },
+      });
+
+      if (!emergency || emergency.patientId !== userId) {
+        return res.status(404).json({ message: "Emergency access not found" });
+      }
+
+      await prisma.emergencyAccess.update({
+        where: { id: accessId },
+        data: {
+          status: "REVOKED",
+          revokedAt: new Date(),
+        },
+      });
+
+      await auditLog({
+        actorRole: "PATIENT",
+        actorId: userId,
+        action: "REVOKE_EMERGENCY_ACCESS",
+        targetId: emergency.doctorId,
+      });
+    }
+
+    res.json({ message: "Access revoked successfully" });
+  } catch (err) {
+    console.error("REVOKE ACCESS ERROR:", err);
+    res.status(500).json({ message: "Failed to revoke access" });
   }
 });
 
@@ -251,22 +394,47 @@ router.get("/hospital/active-access", verifyToken, async (req, res) => {
       return res.status(403).json({ message: "Only hospitals allowed" });
     }
 
-    const emergencies = await prisma.emergencyAccess.findMany({
-      where: { hospitalId, status: "ACTIVE" },
-      include: {
-        doctor: { select: { name: true, doctorUid: true } },
-        patient: { select: { healthUid: true } },
-      },
-    });
+    const now = new Date();
+    const [normal, emergencies] = await Promise.all([
+      prisma.accessRequest.findMany({
+        where: {
+          status: "APPROVED",
+          expiresAt: { gt: now },
+          doctor: { hospitalId },
+        },
+        include: {
+          doctor: { select: { id: true, name: true, doctorUid: true } },
+          patient: { select: { healthUid: true } },
+        },
+      }),
+      prisma.emergencyAccess.findMany({
+        where: { hospitalId, status: "ACTIVE", expiresAt: { gt: now } },
+        include: {
+          doctor: { select: { id: true, name: true, doctorUid: true } },
+          patient: { select: { healthUid: true } },
+        },
+      }),
+    ]);
 
     res.json({
-      activeAccesses: emergencies.map((e) => ({
-        type: "EMERGENCY",
-        doctor: e.doctor,
-        patient: e.patient,
-        startedAt: e.startedAt,
-        expiresAt: e.expiresAt,
-      })),
+      activeAccesses: [
+        ...normal.map((a) => ({
+          id: a.id,
+          type: "STANDARD",
+          doctor: a.doctor,
+          patient: a.patient,
+          createdAt: a.createdAt,
+          expiresAt: a.expiresAt,
+        })),
+        ...emergencies.map((e) => ({
+          id: e.id,
+          type: "EMERGENCY",
+          doctor: e.doctor,
+          patient: e.patient,
+          createdAt: e.startedAt,
+          expiresAt: e.expiresAt,
+        })),
+      ],
     });
   } catch (err) {
     console.error("HOSPITAL VIEW ERROR:", err);

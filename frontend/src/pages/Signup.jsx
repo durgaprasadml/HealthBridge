@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Shield, Phone, User, Heart, AlertCircle, Calendar } from "lucide-react";
 import { sendSignupOtp, verifySignupOtp } from "../services/api";
+import toast from "react-hot-toast";
 
 export default function Signup() {
   const [step, setStep] = useState(1); // 1: details, 2: OTP
@@ -16,53 +17,62 @@ export default function Signup() {
     gender: "",
   });
   const [otp, setOtp] = useState("");
-  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleSendOtp = async () => {
-    setError("");
     if (!formData.name.trim()) {
-      setError("Name is required");
+      toast.error("Name is required");
       return;
     }
     if (!formData.phone || !/^[6-9]\d{9}$/.test(formData.phone)) {
-      setError("Enter a valid 10-digit phone number");
+      toast.error("Enter a valid 10-digit phone number");
       return;
     }
 
     setLoading(true);
-    const res = await sendSignupOtp(formData.name, formData.phone);
-    setLoading(false);
-
-    if (res.message) {
-      setStep(2);
-    } else {
-      setError(res.message || "Failed to send OTP");
+    try {
+      const res = await sendSignupOtp(formData.name, formData.phone);
+      if (res.message) {
+        toast.success("OTP sent to your phone!");
+        setStep(2);
+      } else {
+        toast.error("Failed to send OTP");
+      }
+    } catch (err) {
+      toast.error(err.message || "Failed to send OTP");
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleVerifyOtp = async () => {
-    setError("");
     if (!otp || otp.length !== 6) {
-      setError("Enter valid 6-digit OTP");
+      toast.error("Enter valid 6-digit OTP");
       return;
     }
 
     setLoading(true);
-    const res = await verifySignupOtp(formData.name, formData.phone, otp);
-    setLoading(false);
+    try {
+      const res = await verifySignupOtp(formData.name, formData.phone, otp);
 
-    if (res.user) {
-      // Store token and redirect to profile to complete details
-      localStorage.setItem("token", res.token);
-      localStorage.setItem("user", JSON.stringify(res.user));
-      localStorage.setItem("role", "PATIENT");
-      
-      // Navigate to profile to add additional details
-      navigate("/patient/profile", { state: { isNewUser: true } });
-    } else {
-      setError(res.message || "Verification failed");
+      if (res.user && res.token) {
+        // Store token and redirect to profile to complete details
+        localStorage.setItem("token", res.token);
+        localStorage.setItem("user", JSON.stringify(res.user));
+        localStorage.setItem("role", "PATIENT");
+        localStorage.setItem("userName", res.user.name || "Patient");
+
+        toast.success("Account created successfully!");
+        // Navigate to profile to add additional details
+        navigate("/patient/profile", { state: { isNewUser: true } });
+      } else {
+        toast.error("Verification failed");
+      }
+    } catch (err) {
+      toast.error(err.message || "Verification failed");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -211,12 +221,6 @@ export default function Signup() {
                 </div>
               </div>
 
-              {error && (
-                <div className="bg-red-50 text-red-600 px-4 py-3 rounded-lg text-sm mb-4">
-                  {error}
-                </div>
-              )}
-
               <button
                 onClick={handleSendOtp}
                 disabled={loading}
@@ -260,12 +264,6 @@ export default function Signup() {
                 />
               </div>
 
-              {error && (
-                <div className="bg-red-50 text-red-600 px-4 py-3 rounded-lg text-sm mb-4">
-                  {error}
-                </div>
-              )}
-
               <button
                 onClick={handleVerifyOtp}
                 disabled={loading || otp.length !== 6}
@@ -293,4 +291,3 @@ export default function Signup() {
     </div>
   );
 }
-

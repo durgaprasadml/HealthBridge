@@ -55,9 +55,14 @@ model Otp {
 }
 
 model Hospital {
-  id       String @id @default(uuid())
-  name     String
-  location String
+  id           String  @id @default(uuid())
+  name         String
+  location     String
+  hospitalUid  String? @unique
+  adminName    String?
+  phone        String? @unique
+  email        String? @unique
+  passwordHash String?
 
   doctors Doctor[]
 
@@ -73,6 +78,8 @@ model Doctor {
   phone      String @unique
   doctorUid  String @unique
   hospitalId String
+  specialization String?
+  passwordHash   String?
 
   hospital Hospital @relation(fields: [hospitalId], references: [id])
 

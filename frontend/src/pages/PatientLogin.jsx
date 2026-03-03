@@ -1,39 +1,43 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import AuthCard from "../components/AuthCard";
-import { sendLoginOtp } from "../services/api";
-import { User, Mail, Loader2, ArrowLeft } from "lucide-react";
+import { sendPatientLoginOtp } from "../services/api";
+import { User, Loader2, ArrowLeft } from "lucide-react";
+import toast from "react-hot-toast";
 
 export default function PatientLogin() {
   const [identifier, setIdentifier] = useState("");
-  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleSendOtp = async () => {
-    setError("");
-    const value = identifier.trim();
+    let value = identifier.trim();
 
     if (!value) {
-      setError("Health ID or phone number is required");
+      toast.error("Health ID or phone number is required");
       return;
+    }
+
+    // Auto-add HB- prefix if not present and it's not a phone number
+    if (!/^[6-9]\d{9}$/.test(value) && !value.startsWith("HB-")) {
+      value = "HB-" + value.toUpperCase();
     }
 
     setLoading(true);
     try {
-      const res = await sendLoginOtp(value);
+      const res = await sendPatientLoginOtp(value);
 
       if (res) {
-        // identifier for verify step can be phone (sentTo) or original value
+        toast.success("OTP sent to your registered number!");
         const identifier = res.sentTo || value;
         navigate("/verify-otp", {
           state: { identifier, role: "PATIENT" },
         });
       } else {
-        setError(res?.message || "Failed to send OTP. Please check your input.");
+        toast.error(res?.message || "Failed to send OTP. Please check your input.");
       }
     } catch (err) {
-      setError("An error occurred. Please try again.");
+      toast.error(err.message || "An error occurred. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -43,6 +47,18 @@ export default function PatientLogin() {
     if (e.key === "Enter") {
       handleSendOtp();
     }
+  };
+
+  const handleIdentifierChange = (e) => {
+    let value = e.target.value.toUpperCase();
+    // Keep HB- prefix if user typed it
+    if (!value.startsWith("HB-") && value.length > 0) {
+      // Only add HB- if user hasn't deleted it and is typing alphanumeric
+      if (!/^[6-9]$/.test(value.slice(-1))) {
+        // Let them type freely
+      }
+    }
+    setIdentifier(value);
   };
 
   return (
@@ -73,13 +89,14 @@ export default function PatientLogin() {
               <div className="relative">
                 <User className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" size={20} />
                 <input
-                  className="input pl-10"
+                  className="input pl-10 font-mono"
                   placeholder="HB-XXXXXXX or 9876543210"
                   value={identifier}
-                  onChange={(e) => setIdentifier(e.target.value)}
+                  onChange={handleIdentifierChange}
                   onKeyPress={handleKeyPress}
                 />
               </div>
+              <p className="text-xs text-text-muted mt-1">Enter your unique ID (HB- is added automatically)</p>
             </div>
 
             <button
@@ -97,13 +114,13 @@ export default function PatientLogin() {
               )}
             </button>
 
-            {error && (
-              <p className="text-error text-sm text-center bg-red-50 p-3 rounded-lg">{error}</p>
-            )}
-
             <p className="text-center text-sm text-text-secondary mt-4">
               New patient?{" "}
-              <button className="text-primary-500 font-medium hover:underline">
+              <button
+                type="button"
+                onClick={() => navigate("/register/patient")}
+                className="text-primary-500 font-medium hover:underline"
+              >
                 Register for Health ID
               </button>
             </p>
@@ -113,4 +130,3 @@ export default function PatientLogin() {
     </div>
   );
 }
-

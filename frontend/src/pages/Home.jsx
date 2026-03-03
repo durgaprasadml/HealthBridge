@@ -59,7 +59,7 @@ export default function Home() {
 
             <div className="flex flex-wrap gap-4 mb-8">
               <Link
-                to="/signup"
+                to="/register"
                 className="bg-primary text-white px-6 py-3 rounded-lg font-medium hover:bg-primary/90 transition inline-flex items-center gap-2"
               >
                 Get Started
@@ -181,7 +181,7 @@ export default function Home() {
           </p>
           <div className="flex flex-wrap justify-center gap-4">
             <Link
-              to="/signup"
+              to="/register"
               className="bg-white text-primary px-8 py-4 rounded-lg font-semibold hover:bg-gray-100 transition"
             >
               Create Account
@@ -198,4 +198,3 @@ export default function Home() {
     </main>
   );
 }
-
