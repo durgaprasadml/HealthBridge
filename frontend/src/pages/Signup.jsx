@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Shield, Phone, User, Heart, AlertCircle, Calendar } from "lucide-react";
 import { sendSignupOtp, verifySignupOtp } from "../services/api";
+import toast from "react-hot-toast";
 
 export default function Signup() {
   const [step, setStep] = useState(1); // 1: details, 2: OTP
@@ -16,18 +17,16 @@ export default function Signup() {
     gender: "",
   });
   const [otp, setOtp] = useState("");
-  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleSendOtp = async () => {
-    setError("");
     if (!formData.name.trim()) {
-      setError("Name is required");
+      toast.error("Name is required");
       return;
     }
     if (!formData.phone || !/^[6-9]\d{9}$/.test(formData.phone)) {
-      setError("Enter a valid 10-digit phone number");
+      toast.error("Enter a valid 10-digit phone number");
       return;
     }
 
@@ -35,21 +34,21 @@ export default function Signup() {
     try {
       const res = await sendSignupOtp(formData.name, formData.phone);
       if (res.message) {
+        toast.success("OTP sent to your phone!");
         setStep(2);
       } else {
-        setError("Failed to send OTP");
+        toast.error("Failed to send OTP");
       }
     } catch (err) {
-      setError(err.message || "Failed to send OTP");
+      toast.error(err.message || "Failed to send OTP");
     } finally {
       setLoading(false);
     }
   };
 
   const handleVerifyOtp = async () => {
-    setError("");
     if (!otp || otp.length !== 6) {
-      setError("Enter valid 6-digit OTP");
+      toast.error("Enter valid 6-digit OTP");
       return;
     }
 
@@ -64,13 +63,14 @@ export default function Signup() {
         localStorage.setItem("role", "PATIENT");
         localStorage.setItem("userName", res.user.name || "Patient");
 
+        toast.success("Account created successfully!");
         // Navigate to profile to add additional details
         navigate("/patient/profile", { state: { isNewUser: true } });
       } else {
-        setError("Verification failed");
+        toast.error("Verification failed");
       }
     } catch (err) {
-      setError(err.message || "Verification failed");
+      toast.error(err.message || "Verification failed");
     } finally {
       setLoading(false);
     }
@@ -221,12 +221,6 @@ export default function Signup() {
                 </div>
               </div>
 
-              {error && (
-                <div className="bg-red-50 text-red-600 px-4 py-3 rounded-lg text-sm mb-4">
-                  {error}
-                </div>
-              )}
-
               <button
                 onClick={handleSendOtp}
                 disabled={loading}
@@ -269,12 +263,6 @@ export default function Signup() {
                   maxLength={6}
                 />
               </div>
-
-              {error && (
-                <div className="bg-red-50 text-red-600 px-4 py-3 rounded-lg text-sm mb-4">
-                  {error}
-                </div>
-              )}
 
               <button
                 onClick={handleVerifyOtp}

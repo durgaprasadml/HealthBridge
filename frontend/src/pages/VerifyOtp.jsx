@@ -2,13 +2,12 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { verifyPatientLoginOtp, verifyDoctorLoginOtp, sendPatientLoginOtp, sendDoctorLoginOtp } from "../services/api";
 import { Shield, Lock, Loader2, ArrowLeft, CheckCircle } from "lucide-react";
+import toast from "react-hot-toast";
 
 export default function VerifyOtp() {
   const { state } = useLocation();
   const navigate = useNavigate();
   const [otp, setOtp] = useState("");
-  const [error, setError] = useState("");
-  const [info, setInfo] = useState("");
   const [loading, setLoading] = useState(false);
 
   // after sending OTP pages now pass `identifier` (phone or UID) and `role` in state
@@ -31,12 +30,10 @@ export default function VerifyOtp() {
 
   const submit = async () => {
     if (!otp.trim()) {
-      setError("Please enter the OTP");
+      toast.error("Please enter the OTP");
       return;
     }
 
-    setError("");
-    setInfo("");
     setLoading(true);
 
     try {
@@ -51,32 +48,31 @@ export default function VerifyOtp() {
         localStorage.setItem("role", role);
         localStorage.setItem("userName", res.user?.name || res.doctor?.name || "User");
 
+        toast.success("Verification successful!");
         if (role === "PATIENT") navigate("/patient");
         else if (role === "DOCTOR") navigate("/doctor");
         else if (role === "HOSPITAL") navigate("/hospital");
         else navigate("/redirect");
       } else {
-        setError(res.message || "Invalid OTP. Please try again.");
+        toast.error(res.message || "Invalid OTP. Please try again.");
       }
     } catch (err) {
-      setError(err.message || "An error occurred. Please try again.");
+      toast.error(err.message || "An error occurred. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
   const handleResend = async () => {
-    setError("");
-    setInfo("");
     try {
       if (state.role === "DOCTOR") {
         await sendDoctorLoginOtp(state.identifier);
       } else {
         await sendPatientLoginOtp(state.identifier);
       }
-      setInfo("OTP resent successfully.");
+      toast.success("OTP resent successfully!");
     } catch (err) {
-      setError(err.message || "Failed to resend OTP");
+      toast.error(err.message || "Failed to resend OTP");
     }
   };
 
@@ -153,13 +149,6 @@ export default function VerifyOtp() {
                 </>
               )}
             </button>
-
-            {error && (
-              <p className="text-error text-sm text-center bg-red-50 p-3 rounded-lg">{error}</p>
-            )}
-            {info && (
-              <p className="text-success text-sm text-center bg-emerald-50 p-3 rounded-lg">{info}</p>
-            )}
 
             <div className="text-center">
               <p className="text-sm text-text-secondary">

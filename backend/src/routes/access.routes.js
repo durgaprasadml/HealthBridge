@@ -68,7 +68,10 @@ router.get("/requests", verifyToken, async (req, res) => {
     }
 
     const requests = await prisma.accessRequest.findMany({
-      where: { patientId: userId },
+      where: {
+        patientId: userId,
+        status: "PENDING",
+      },
       include: {
         doctor: {
           select: { name: true, doctorUid: true },
@@ -96,7 +99,7 @@ router.get("/active-accesses", verifyToken, async (req, res) => {
     }
 
     const now = new Date();
-    
+
     // Get approved normal accesses
     const normalAccesses = await prisma.accessRequest.findMany({
       where: {
@@ -203,7 +206,7 @@ router.post("/revoke", verifyToken, async (req, res) => {
 
       await prisma.emergencyAccess.update({
         where: { id: accessId },
-        data: { 
+        data: {
           status: "REVOKED",
           revokedAt: new Date(),
         },

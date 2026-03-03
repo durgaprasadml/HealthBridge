@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import DashboardLayout from "../components/DashboardLayout";
 import StatCard from "../components/StatsCard";
-import { Search, Users, Clock, Shield, AlertCircle, UserPlus, Loader2, Building2 } from "lucide-react";
+import { Search, Users, Clock, Shield, AlertCircle, UserPlus, Loader2, Building2, X } from "lucide-react";
 import { createDoctor, getHospitalActiveAccess, getHospitalDoctors, getHospitalProfile } from "../services/api";
+import toast from "react-hot-toast";
 
 export default function HospitalDashboard() {
   const [accesses, setAccesses] = useState([]);
@@ -12,8 +13,7 @@ export default function HospitalDashboard() {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterType, setFilterType] = useState("all");
   const [createLoading, setCreateLoading] = useState(false);
-  const [createError, setCreateError] = useState("");
-  const [createSuccess, setCreateSuccess] = useState("");
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     phone: "",
@@ -49,11 +49,9 @@ export default function HospitalDashboard() {
 
   const handleCreateDoctor = async (e) => {
     e.preventDefault();
-    setCreateError("");
-    setCreateSuccess("");
 
     if (!formData.name.trim() || !formData.phone.trim() || !formData.password) {
-      setCreateError("Name, phone and password are required");
+      toast.error("Name, phone and password are required");
       return;
     }
 
@@ -66,11 +64,12 @@ export default function HospitalDashboard() {
         password: formData.password,
       });
 
-      setCreateSuccess(`Doctor created. UID: ${res.doctor?.doctorUid}`);
+      toast.success(`Doctor created successfully! UID: ${res.doctor?.doctorUid}`);
       setFormData({ name: "", phone: "", specialization: "", password: "" });
+      setIsModalOpen(false);
       await loadData();
     } catch (err) {
-      setCreateError(err.message || "Failed to create doctor");
+      toast.error(err.message || "Failed to create doctor");
     } finally {
       setCreateLoading(false);
     }
@@ -106,10 +105,90 @@ export default function HospitalDashboard() {
                 <p className="text-primary-100 text-sm">{hospital.location}</p>
               </div>
             </div>
-            <div className="bg-white/20 rounded-lg px-4 py-2">
-              <p className="text-xs text-primary-100 uppercase tracking-wide">Hospital ID</p>
-              <p className="text-lg font-mono font-bold">{hospital.hospitalUid || "N/A"}</p>
+            <div className="flex bg-white/20 items-center justify-between rounded-lg px-4 py-2 gap-4">
+              <div>
+                <p className="text-xs text-primary-100 uppercase tracking-wide">Hospital ID</p>
+                <p className="text-lg font-mono font-bold">{hospital.hospitalUid || "N/A"}</p>
+              </div>
+              <button
+                onClick={() => setIsModalOpen(true)}
+                className="btn bg-white text-primary-600 hover:bg-primary-50 px-4 py-2 flex items-center gap-2 shadow-sm whitespace-nowrap"
+              >
+                <UserPlus size={18} />
+                Add Doctor
+              </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Doctor Modal */}
+      {isModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden" style={{ animation: "fadeIn 0.2s ease-out" }}>
+            <div className="flex items-center justify-between p-6 border-b border-gray-100">
+              <h2 className="text-xl font-bold flex items-center gap-2 text-text-primary">
+                <UserPlus size={22} className="text-primary-600" />
+                Create Doctor Profile
+              </h2>
+              <button onClick={() => setIsModalOpen(false)} className="text-text-muted hover:text-text-primary transition">
+                <X size={24} />
+              </button>
+            </div>
+            <form onSubmit={handleCreateDoctor} className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-text-secondary mb-1">Doctor Name *</label>
+                <input
+                  className="input w-full"
+                  placeholder="e.g. Dr. John Doe"
+                  value={formData.name}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-text-secondary mb-1">Phone Number *</label>
+                <input
+                  className="input w-full"
+                  placeholder="10-digit mobile"
+                  value={formData.phone}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, phone: e.target.value.replace(/\D/g, "").slice(0, 10) }))}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-text-secondary mb-1">Specialization</label>
+                <input
+                  className="input w-full"
+                  placeholder="e.g. Cardiologist"
+                  value={formData.specialization}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, specialization: e.target.value }))}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-text-secondary mb-1">Initial Password *</label>
+                <input
+                  type="password"
+                  className="input w-full"
+                  placeholder="Create a password"
+                  value={formData.password}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, password: e.target.value }))}
+                />
+              </div>
+
+              <div className="pt-4 flex gap-3">
+                <button type="button" onClick={() => setIsModalOpen(false)} className="btn bg-gray-100 text-gray-700 hover:bg-gray-200 flex-1">
+                  Cancel
+                </button>
+                <button type="submit" disabled={createLoading} className="btn btn-primary flex-1">
+                  {createLoading ? (
+                    <>
+                      <Loader2 size={18} className="animate-spin inline mr-2" /> Creating...
+                    </>
+                  ) : (
+                    "Create Account"
+                  )}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
@@ -122,56 +201,9 @@ export default function HospitalDashboard() {
         ))}
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-8">
-        <div className="bg-white rounded-xl shadow-card p-6 xl:col-span-1">
-          <div className="flex items-center gap-2 mb-4">
-            <UserPlus size={20} className="text-primary-600" />
-            <h2 className="text-lg font-semibold text-text-primary">Create Doctor Account</h2>
-          </div>
+      <div className="grid grid-cols-1 gap-6 mb-8">
 
-          <form onSubmit={handleCreateDoctor} className="space-y-3">
-            <input
-              className="input"
-              placeholder="Doctor name"
-              value={formData.name}
-              onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
-            />
-            <input
-              className="input"
-              placeholder="Phone number"
-              value={formData.phone}
-              onChange={(e) => setFormData((prev) => ({ ...prev, phone: e.target.value.replace(/\D/g, "").slice(0, 10) }))}
-            />
-            <input
-              className="input"
-              placeholder="Specialization (optional)"
-              value={formData.specialization}
-              onChange={(e) => setFormData((prev) => ({ ...prev, specialization: e.target.value }))}
-            />
-            <input
-              type="password"
-              className="input"
-              placeholder="Temporary password"
-              value={formData.password}
-              onChange={(e) => setFormData((prev) => ({ ...prev, password: e.target.value }))}
-            />
-
-            {createError && <p className="text-sm text-error bg-red-50 p-2 rounded-lg">{createError}</p>}
-            {createSuccess && <p className="text-sm text-success bg-emerald-50 p-2 rounded-lg">{createSuccess}</p>}
-
-            <button type="submit" disabled={createLoading} className="btn btn-primary w-full">
-              {createLoading ? (
-                <>
-                  <Loader2 size={16} className="animate-spin" /> Creating...
-                </>
-              ) : (
-                "Create Doctor"
-              )}
-            </button>
-          </form>
-        </div>
-
-        <div className="bg-white rounded-xl shadow-card overflow-hidden xl:col-span-2">
+        <div className="bg-white rounded-xl shadow-card overflow-hidden">
           <div className="p-6 border-b border-border">
             <h2 className="text-lg font-semibold text-text-primary">Doctors</h2>
             <p className="text-sm text-text-secondary mt-1">Doctors created by your hospital</p>
@@ -181,16 +213,17 @@ export default function HospitalDashboard() {
           ) : doctors.length === 0 ? (
             <div className="p-8 text-center text-text-secondary">No doctors created yet.</div>
           ) : (
-            <div className="divide-y divide-border max-h-80 overflow-y-auto">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-6 overflow-y-auto max-h-[500px]">
               {doctors.map((doctor) => (
-                <div key={doctor.id} className="p-4 flex items-center justify-between">
+                <div key={doctor.id} className="border border-gray-100 rounded-xl p-4 flex items-center justify-between hover:border-primary-200 transition bg-gray-50/50">
                   <div>
-                    <p className="font-medium text-text-primary">{doctor.name}</p>
-                    <p className="text-sm text-text-secondary">{doctor.specialization || "General"}</p>
+                    <h3 className="font-semibold text-text-primary text-lg">{doctor.name}</h3>
+                    <p className="text-sm text-primary-600 font-medium mb-1">{doctor.specialization || "General"}</p>
+                    <p className="text-xs text-text-secondary flex items-center gap-1"><Shield size={12} /> {doctor.doctorUid}</p>
                   </div>
-                  <div className="text-right">
-                    <p className="font-mono text-sm text-text-primary">{doctor.doctorUid}</p>
-                    <p className="text-xs text-text-secondary">{doctor.phone}</p>
+                  <div className="bg-white shadow-sm border border-gray-100 rounded-lg px-3 py-2 text-center">
+                    <p className="text-[10px] text-text-muted uppercase tracking-wider font-semibold mb-1">Phone</p>
+                    <p className="text-sm font-mono text-text-primary">{doctor.phone}</p>
                   </div>
                 </div>
               ))}

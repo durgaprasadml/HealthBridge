@@ -3,6 +3,7 @@ import jwt from "jsonwebtoken";
 import prisma from "../prismaClient.js";
 import { generateHealthUid } from "../utils/healthUid.js";
 import { verifyToken } from "../middlewares/auth.middleware.js";
+import { sendSMS } from "../utils/sms.js";
 
 const router = express.Router();
 
@@ -40,6 +41,8 @@ router.post("/signup/send-otp", async (req, res) => {
       },
     });
 
+    const messageBody = `Welcome to HealthBridge! Your Signup OTP is: ${otp}. Valid for 5 minutes.`;
+    await sendSMS(phone, messageBody);
     console.log(`PATIENT SIGNUP OTP for ${phone}: ${otp}`);
 
     res.json({ message: "OTP sent for signup" });
@@ -146,6 +149,8 @@ router.post("/login/send-otp", async (req, res) => {
       },
     });
 
+    const messageBody = `Your HealthBridge Login OTP is: ${otp}. Valid for 5 minutes. Do not share this with anyone.`;
+    await sendSMS(user.phone, messageBody);
     console.log(`LOGIN OTP for ${user.phone}: ${otp}`);
 
     res.json({

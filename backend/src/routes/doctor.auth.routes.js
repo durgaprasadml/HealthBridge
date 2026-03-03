@@ -2,6 +2,7 @@ import express from "express";
 import jwt from "jsonwebtoken";
 import prisma from "../prismaClient.js";
 import bcrypt from "bcrypt";
+import { sendSMS } from "../utils/sms.js";
 
 const router = express.Router();
 
@@ -48,6 +49,8 @@ router.post("/login/send-otp", async (req, res) => {
       },
     });
 
+    const messageBody = `Dr. ${doctor.name}, your HealthBridge Login OTP is: ${otp}. Valid for 5 minutes.`;
+    await sendSMS(doctor.phone, messageBody);
     console.log(`DOCTOR LOGIN OTP for ${doctor.phone}: ${otp}`);
 
     res.json({ message: "OTP sent to registered phone" });

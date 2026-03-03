@@ -3,19 +3,18 @@ import { useNavigate } from "react-router-dom";
 import AuthCard from "../components/AuthCard";
 import { sendPatientLoginOtp } from "../services/api";
 import { User, Loader2, ArrowLeft } from "lucide-react";
+import toast from "react-hot-toast";
 
 export default function PatientLogin() {
   const [identifier, setIdentifier] = useState("");
-  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleSendOtp = async () => {
-    setError("");
     let value = identifier.trim();
 
     if (!value) {
-      setError("Health ID or phone number is required");
+      toast.error("Health ID or phone number is required");
       return;
     }
 
@@ -29,16 +28,16 @@ export default function PatientLogin() {
       const res = await sendPatientLoginOtp(value);
 
       if (res) {
-        // identifier for verify step can be phone (sentTo) or original value
+        toast.success("OTP sent to your registered number!");
         const identifier = res.sentTo || value;
         navigate("/verify-otp", {
           state: { identifier, role: "PATIENT" },
         });
       } else {
-        setError(res?.message || "Failed to send OTP. Please check your input.");
+        toast.error(res?.message || "Failed to send OTP. Please check your input.");
       }
     } catch (err) {
-      setError(err.message || "An error occurred. Please try again.");
+      toast.error(err.message || "An error occurred. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -114,10 +113,6 @@ export default function PatientLogin() {
                 "Send OTP"
               )}
             </button>
-
-            {error && (
-              <p className="text-error text-sm text-center bg-red-50 p-3 rounded-lg">{error}</p>
-            )}
 
             <p className="text-center text-sm text-text-secondary mt-4">
               New patient?{" "}

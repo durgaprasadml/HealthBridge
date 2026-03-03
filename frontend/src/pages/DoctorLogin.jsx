@@ -3,20 +3,18 @@ import { useNavigate } from "react-router-dom";
 import AuthCard from "../components/AuthCard";
 import { sendDoctorLoginOtp, loginDoctorWithPassword } from "../services/api";
 import { Stethoscope, Loader2, ArrowLeft, Lock } from "lucide-react";
+import toast from "react-hot-toast";
 
 export default function DoctorLogin() {
   const [doctorUid, setDoctorUid] = useState("");
   const [password, setPassword] = useState("");
   const [mode, setMode] = useState("OTP");
-  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleSendOtp = async () => {
-    setError("");
-
     if (!doctorUid.trim()) {
-      setError("Doctor UID is required");
+      toast.error("Doctor UID is required");
       return;
     }
 
@@ -30,7 +28,7 @@ export default function DoctorLogin() {
       const res = await sendDoctorLoginOtp(uid);
 
       if (res) {
-        // doctor endpoint doesn't return sentTo, so just pass the UID
+        toast.success("OTP sent to your registered number!");
         navigate("/verify-otp", {
           state: {
             identifier: uid,
@@ -38,19 +36,18 @@ export default function DoctorLogin() {
           },
         });
       } else {
-        setError(res?.message || "Failed to send OTP. Please check your Doctor UID.");
+        toast.error(res?.message || "Failed to send OTP. Please check your Doctor UID.");
       }
     } catch (err) {
-      setError(err.message || "Server error. Please try again.");
+      toast.error(err.message || "Server error. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
   const handlePasswordLogin = async () => {
-    setError("");
     if (!doctorUid.trim() || !password) {
-      setError("Doctor UID and password are required");
+      toast.error("Doctor UID and password are required");
       return;
     }
 
@@ -65,9 +62,10 @@ export default function DoctorLogin() {
       localStorage.setItem("token", res.token);
       localStorage.setItem("role", "DOCTOR");
       localStorage.setItem("userName", res.doctor?.name || "Doctor");
+      toast.success("Login successful!");
       navigate("/doctor");
     } catch (err) {
-      setError(err.message || "Login failed");
+      toast.error(err.message || "Login failed");
     } finally {
       setLoading(false);
     }
@@ -168,10 +166,6 @@ export default function DoctorLogin() {
                 mode === "OTP" ? "Send OTP" : "Login"
               )}
             </button>
-
-            {error && (
-              <p className="text-error text-sm text-center bg-red-50 p-3 rounded-lg">{error}</p>
-            )}
 
             <p className="text-center text-sm text-text-secondary mt-4">
               New doctor?{" "}
