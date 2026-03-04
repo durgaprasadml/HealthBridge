@@ -19,7 +19,7 @@ router.get("/my-reminders", verifyToken, async (req, res) => {
       where: { patientId: userId },
       include: {
         doctor: {
-          select: { name: true, doctorUid: true, hospital: { select: { name: true } } },
+          select: { name: true, doctorUid: true, hospital: { select: { name: true, location: true } } },
         },
       },
       orderBy: { checkupDate: "asc" },
@@ -85,7 +85,7 @@ router.get("/patient/:patientUid", verifyToken, async (req, res) => {
     }
 
     const reminders = await prisma.reminder.findMany({
-      where: { 
+      where: {
         patientId: patient.id,
         doctorId,
       },

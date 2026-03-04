@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import DashboardLayout from "../components/DashboardLayout";
 import StatCard from "../components/StatsCard";
-import { Shield, Check, X, Clock, User, Building2, Key, Activity } from "lucide-react";
+import { Shield, Check, X, Clock, User, Building2, Key, Activity, AlertCircle } from "lucide-react";
+import { Link } from "react-router-dom";
 import { getAccessRequests, respondToAccess, getActiveAccesses, revokeAccess, getProfile } from "../services/api";
 
 export default function PatientDashboard() {
@@ -69,24 +70,36 @@ export default function PatientDashboard() {
     <DashboardLayout title="Patient Dashboard">
       {/* Patient Info Header */}
       {profile && (
-        <div className="bg-gradient-to-r from-primary-600 to-primary-700 rounded-xl p-6 mb-6 text-white">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <div className="w-14 h-14 bg-white/20 rounded-full flex items-center justify-center">
-                <User size={28} className="text-white" />
+        <div className="glass bg-gradient-to-r from-primary-600/90 to-primary-800/90 rounded-2xl p-8 mb-8 text-white shadow-xl shadow-primary-500/20 border-white/20 animate-slide-down">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+            <div className="flex items-center gap-5">
+              <div className="w-16 h-16 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center shadow-inner">
+                <User size={32} className="text-white" />
               </div>
               <div>
-                <h2 className="text-xl font-bold">{profile.name}</h2>
-                <p className="text-primary-100 text-sm">{profile.phone}</p>
+                <h2 className="text-2xl font-extrabold tracking-tight">{profile.name}</h2>
+                <p className="text-primary-100/90 font-medium">{profile.phone}</p>
               </div>
             </div>
-            <div className="bg-white/20 rounded-lg px-4 py-2">
-              <p className="text-xs text-primary-100 uppercase tracking-wide">Health ID</p>
-              <p className="text-lg font-mono font-bold">{profile.healthUid}</p>
+            <div className="bg-white/10 backdrop-blur-md rounded-xl px-5 py-3 border border-white/10 relative overflow-hidden group">
+              <div className="absolute inset-0 bg-white/5 group-hover:bg-white/10 transition-colors"></div>
+              <p className="text-xs text-primary-200 uppercase tracking-widest font-bold mb-1">Health ID</p>
+              <p className="text-xl font-mono font-bold tracking-wider">{profile.healthUid}</p>
             </div>
           </div>
         </div>
       )}
+
+      {/* Emergency Action */}
+      <div className="flex justify-end mb-6">
+        <Link
+          to="/emergency"
+          className="btn btn-danger flex items-center gap-2 px-6 py-3 shadow-lg shadow-red-500/30"
+        >
+          <AlertCircle size={20} />
+          Emergency Access Portal
+        </Link>
+      </div>
 
       {/* Stats Row */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
@@ -99,8 +112,8 @@ export default function PatientDashboard() {
 
       {/* Active Accesses Section */}
       {activeAccesses.length > 0 && (
-        <div className="bg-white rounded-xl shadow-card mb-8">
-          <div className="p-6 border-b border-border">
+        <div className="glass-panel mb-8 border border-white/60 animate-fade-in shadow-xl">
+          <div className="p-6 border-b border-border/50 bg-white/40">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Key size={20} className="text-primary-600" />
@@ -152,8 +165,8 @@ export default function PatientDashboard() {
       )}
 
       {/* Access Requests Section */}
-      <div className="bg-white rounded-xl shadow-card">
-        <div className="p-6 border-b border-border">
+      <div className="glass-panel border border-white/60 animate-fade-in shadow-xl">
+        <div className="p-6 border-b border-border/50 bg-white/40">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Shield size={20} className="text-primary-600" />
@@ -181,8 +194,8 @@ export default function PatientDashboard() {
         ) : (
           <div className="divide-y divide-border">
             {requests.map((r, index) => (
-              <div 
-                key={r.id} 
+              <div
+                key={r.id}
                 className="p-6 hover:bg-primary-50/30 transition-colors animate-slide-up"
                 style={{ animationDelay: `${index * 0.05}s` }}
               >

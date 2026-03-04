@@ -77,19 +77,25 @@ export default function Signup() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-50 to-primary-100 flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
+    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
+      <div className="absolute inset-0 z-0 pointer-events-none">
+        <div className="absolute top-[10%] right-[10%] w-[30rem] h-[30rem] bg-primary-300/20 rounded-full mix-blend-multiply filter blur-[100px] animate-pulse"></div>
+        <div className="absolute bottom-[10%] left-[10%] w-[35rem] h-[35rem] bg-emerald-300/20 rounded-full mix-blend-multiply filter blur-[100px] animate-pulse" style={{ animationDelay: '2s' }}></div>
+      </div>
+
+      <div className="relative z-10 w-full max-w-md animate-slide-up my-8">
         {/* Logo */}
-        <div className="flex justify-center mb-6">
-          <div className="flex items-center gap-2">
-            <div className="w-12 h-12 rounded-xl bg-primary-500 flex items-center justify-center text-white">
-              <Shield size={24} />
+        <div className="flex justify-center mb-8">
+          <div className="flex items-center gap-3">
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white shadow-lg shadow-primary-500/30">
+              <Shield size={28} />
             </div>
-            <span className="text-2xl font-bold text-text-primary">HealthBridge</span>
+            <span className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-primary-600 to-emerald-600 tracking-tight">HealthBridge</span>
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl shadow-card p-6 md:p-8">
+        <div className="glass-panel p-6 md:p-8 shadow-2xl relative overflow-hidden">
+          <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-primary-400 via-primary-500 to-emerald-400 z-20"></div>
           <h1 className="text-2xl font-bold text-center text-text-primary mb-2">
             Create Your Health ID
           </h1>
@@ -106,7 +112,7 @@ export default function Signup() {
                 </label>
                 <input
                   type="text"
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition"
+                  className="input"
                   placeholder="Enter your full name"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
@@ -120,7 +126,7 @@ export default function Signup() {
                 </label>
                 <input
                   type="tel"
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition"
+                  className="input"
                   placeholder="10-digit mobile number"
                   value={formData.phone}
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
@@ -134,7 +140,7 @@ export default function Signup() {
                   <Heart size={16} className="inline mr-1" /> Blood Group
                 </label>
                 <select
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition"
+                  className="input"
                   value={formData.bloodGroup}
                   onChange={(e) => setFormData({ ...formData, bloodGroup: e.target.value })}
                 >
@@ -157,7 +163,7 @@ export default function Signup() {
                 </label>
                 <input
                   type="text"
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition"
+                  className="input"
                   placeholder="e.g., Penicillin, Pollen"
                   value={formData.allergies}
                   onChange={(e) => setFormData({ ...formData, allergies: e.target.value })}
@@ -172,7 +178,7 @@ export default function Signup() {
                   </label>
                   <input
                     type="text"
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition"
+                    className="input"
                     placeholder="Contact name"
                     value={formData.emergencyContact}
                     onChange={(e) => setFormData({ ...formData, emergencyContact: e.target.value })}
@@ -184,7 +190,7 @@ export default function Signup() {
                   </label>
                   <input
                     type="tel"
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition"
+                    className="input"
                     placeholder="Phone number"
                     value={formData.emergencyPhone}
                     onChange={(e) => setFormData({ ...formData, emergencyPhone: e.target.value })}
@@ -201,7 +207,7 @@ export default function Signup() {
                   </label>
                   <input
                     type="date"
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition"
+                    className="input"
                     value={formData.dateOfBirth}
                     onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
                   />
@@ -209,7 +215,7 @@ export default function Signup() {
                 <div>
                   <label className="block text-sm font-medium text-text-primary mb-1">Gender</label>
                   <select
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition"
+                    className="input"
                     value={formData.gender}
                     onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
                   >
@@ -224,7 +230,7 @@ export default function Signup() {
               <button
                 onClick={handleSendOtp}
                 disabled={loading}
-                className="w-full bg-primary-500 text-white py-3 rounded-xl font-medium hover:bg-primary-600 transition disabled:opacity-50"
+                className="btn btn-primary w-full py-3"
               >
                 {loading ? "Sending OTP..." : "Send OTP"}
               </button>
@@ -256,7 +262,7 @@ export default function Signup() {
                 </label>
                 <input
                   type="text"
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition text-center text-2xl tracking-widest"
+                  className="input text-center text-2xl tracking-widest"
                   placeholder="000000"
                   value={otp}
                   onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
@@ -267,7 +273,7 @@ export default function Signup() {
               <button
                 onClick={handleVerifyOtp}
                 disabled={loading || otp.length !== 6}
-                className="w-full bg-primary-500 text-white py-3 rounded-xl font-medium hover:bg-primary-600 transition disabled:opacity-50"
+                className="btn btn-primary w-full py-3"
               >
                 {loading ? "Verifying..." : "Verify & Create Account"}
               </button>

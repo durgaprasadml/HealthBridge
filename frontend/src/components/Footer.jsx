@@ -1,7 +1,10 @@
 export default function Footer() {
   return (
-    <footer className="bg-white border-t mt-20">
-      <div className="max-w-7xl mx-auto px-6 py-14 grid md:grid-cols-3 gap-10">
+    <footer className="glass-panel mt-20 rounded-t-3xl border-t border-white/40 mx-4 sm:mx-8 lg:mx-auto max-w-7xl mb-4 relative z-10 overflow-hidden">
+      {/* Decorative gradient blob */}
+      <div className="absolute top-0 left-1/4 w-96 h-96 bg-primary-100/50 rounded-full mix-blend-multiply filter blur-3xl opacity-50 -z-10"></div>
+      <div className="absolute top-0 right-1/4 w-96 h-96 bg-emerald-100/50 rounded-full mix-blend-multiply filter blur-3xl opacity-50 -z-10"></div>
+      <div className="px-8 py-14 grid md:grid-cols-3 gap-10 relative z-10">
         <div>
           <div className="flex items-center gap-3 mb-6">
             <img src="/logo.png" alt="HealthBridge Logo" className="w-10 h-10 object-contain mix-blend-multiply drop-shadow-sm" />

@@ -1,12 +1,12 @@
 import { TrendingUp, TrendingDown } from "lucide-react";
 
-export default function StatCard({ 
-  title, 
-  value, 
-  icon: Icon, 
-  trend, 
+export default function StatCard({
+  title,
+  value,
+  icon: Icon,
+  trend,
   trendValue,
-  color = "primary" 
+  color = "primary"
 }) {
   const colorClasses = {
     primary: "bg-primary-50 text-primary-500",
@@ -17,7 +17,7 @@ export default function StatCard({
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-card p-6 hover:shadow-card-hover transition-all duration-300 animate-fade-in">
+    <div className="glass-panel p-6 hover:shadow-card-hover transition-all duration-300 animate-fade-in border border-white/60">
       <div className="flex items-start justify-between">
         <div className={`p-3 rounded-xl ${colorClasses[color]}`}>
           {Icon && <Icon size={24} />}
@@ -29,7 +29,7 @@ export default function StatCard({
           </div>
         )}
       </div>
-      
+
       <div className="mt-4">
         <p className="text-sm text-text-secondary font-medium">{title}</p>
         <p className="text-2xl font-bold text-text-primary mt-1">{value}</p>

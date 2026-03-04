@@ -1,12 +1,12 @@
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { 
-  LayoutDashboard, 
-  Users, 
-  Stethoscope, 
-  Building2, 
-  LogOut, 
-  Menu, 
+import {
+  LayoutDashboard,
+  Users,
+  Stethoscope,
+  Building2,
+  LogOut,
+  Menu,
   X,
   Bell,
   ChevronRight,
@@ -35,7 +35,7 @@ export default function DashboardLayout({ children, title }) {
   const navigate = useNavigate();
   const role = localStorage.getItem("role");
   const userName = localStorage.getItem("userName") || "User";
-  
+
   const items = menuItems[role] || menuItems.PATIENT;
 
   const handleLogout = () => {
@@ -44,10 +44,15 @@ export default function DashboardLayout({ children, title }) {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background relative selection:bg-primary-200">
+      {/* Dynamic Background */}
+      <div className="fixed inset-0 pointer-events-none z-0">
+        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary-200/20 rounded-full blur-[100px] animate-pulse"></div>
+        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-emerald-200/20 rounded-full blur-[100px] animate-pulse" style={{ animationDelay: '1s' }}></div>
+      </div>
       {/* Mobile Sidebar Overlay */}
       {sidebarOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-black/50 z-40 lg:hidden"
           onClick={() => setSidebarOpen(false)}
         />
@@ -55,8 +60,8 @@ export default function DashboardLayout({ children, title }) {
 
       {/* Sidebar */}
       <aside className={`
-        fixed top-0 left-0 z-50 h-full w-64 bg-white border-r border-border transform transition-transform duration-300 ease-in-out
-        ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0
+        fixed top-0 left-0 z-50 h-[calc(100vh-2rem)] my-4 ml-4 w-64 glass-panel rounded-3xl border-r border-border transform transition-all duration-300 ease-out shadow-xl overflow-hidden
+        ${sidebarOpen ? "translate-x-0" : "-translate-x-[110%]"} lg:translate-x-0
       `}>
         {/* Logo */}
         <div className="h-16 flex items-center justify-between px-5 border-b border-border">
@@ -68,7 +73,7 @@ export default function DashboardLayout({ children, title }) {
               HealthBridge
             </span>
           </div>
-          <button 
+          <button
             onClick={() => setSidebarOpen(false)}
             className="lg:hidden p-1 hover:bg-gray-100 rounded"
           >
@@ -97,8 +102,8 @@ export default function DashboardLayout({ children, title }) {
                 onClick={() => setSidebarOpen(false)}
                 className={`
                   flex items-center gap-3 px-4 py-3 mb-1 rounded-lg transition-all duration-200
-                  ${isActive 
-                    ? "bg-primary-500 text-white shadow-md" 
+                  ${isActive
+                    ? "bg-primary-500 text-white shadow-md"
                     : "text-text-secondary hover:bg-primary-50 hover:text-primary-600"
                   }
                 `}
@@ -135,8 +140,8 @@ export default function DashboardLayout({ children, title }) {
       {/* Main Content */}
       <div className="lg:pl-64">
         {/* Top Header */}
-        <header className="h-16 bg-white border-b border-border sticky top-0 z-30">
-          <div className="h-full px-4 lg:px-8 flex items-center justify-between">
+        <header className="h-20 sticky top-4 z-30 mx-4 lg:mx-8 glass rounded-2xl shadow-sm border border-white/50 transition-all duration-300">
+          <div className="h-full px-4 lg:px-6 flex items-center justify-between">
             <div className="flex items-center gap-4">
               <button
                 onClick={() => setSidebarOpen(true)}
@@ -156,7 +161,7 @@ export default function DashboardLayout({ children, title }) {
         </header>
 
         {/* Page Content */}
-        <main className="p-4 lg:p-8">
+        <main className="p-4 lg:p-8 pt-6 relative z-10 animate-fade-in">
           {children}
         </main>
       </div>

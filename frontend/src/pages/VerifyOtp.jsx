@@ -13,8 +13,8 @@ export default function VerifyOtp() {
   // after sending OTP pages now pass `identifier` (phone or UID) and `role` in state
   if (!state?.identifier) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-primary-100 flex items-center justify-center p-4">
-        <div className="text-center">
+      <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
+        <div className="text-center glass-panel p-8">
           <h2 className="text-xl font-semibold text-text-primary mb-2">Invalid Session</h2>
           <p className="text-text-secondary mb-4">Please start the login process again.</p>
           <button
@@ -83,11 +83,11 @@ export default function VerifyOtp() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-primary-100 flex items-center justify-center p-4">
-      {/* Background Pattern */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-primary-200/30 rounded-full blur-3xl"></div>
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-primary-200/30 rounded-full blur-3xl"></div>
+    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
+      {/* Dynamic Background */}
+      <div className="absolute inset-0 z-0 pointer-events-none">
+        <div className="absolute top-[20%] left-[10%] w-[30rem] h-[30rem] bg-primary-300/20 rounded-full mix-blend-multiply filter blur-[100px] animate-pulse"></div>
+        <div className="absolute bottom-[10%] right-[10%] w-[35rem] h-[35rem] bg-emerald-300/20 rounded-full mix-blend-multiply filter blur-[100px] animate-pulse" style={{ animationDelay: '2s' }}></div>
       </div>
 
       <div className="relative z-10 w-full max-w-md">
@@ -99,10 +99,11 @@ export default function VerifyOtp() {
           Go back
         </button>
 
-        <div className="bg-white rounded-2xl shadow-card p-6 md:p-8">
+        <div className="glass-panel p-6 md:p-8 relative overflow-hidden shadow-xl animate-scale-in">
+          <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-primary-400 via-primary-500 to-emerald-400 z-20"></div>
           {/* Logo */}
           <div className="text-center mb-6">
-            <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-primary-50 text-primary-500 mb-4">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-3xl bg-gradient-to-br from-primary-400 to-primary-600 text-white mb-4 shadow-lg shadow-primary-500/30">
               <Shield size={28} />
             </div>
             <h2 className="text-2xl font-bold text-text-primary">Verify OTP</h2>

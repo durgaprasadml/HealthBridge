@@ -33,12 +33,17 @@ export default function EmergencyAccess() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-red-50 to-orange-50 py-12 px-4">
-      <div className="max-w-lg mx-auto">
+    <div className="min-h-screen flex flex-col pt-20 px-4 relative overflow-hidden bg-background">
+      <div className="absolute inset-0 z-0 pointer-events-none">
+        <div className="absolute top-[20%] left-[10%] w-[35rem] h-[35rem] bg-red-500/10 rounded-full mix-blend-multiply filter blur-[100px] animate-pulse"></div>
+        <div className="absolute bottom-[10%] right-[10%] w-[40rem] h-[40rem] bg-orange-500/10 rounded-full mix-blend-multiply filter blur-[100px] animate-pulse" style={{ animationDelay: '1s' }}></div>
+      </div>
+      <div className="max-w-lg mx-auto w-full relative z-10">
         {/* Header */}
         <div className="text-center mb-8">
-          <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <AlertCircle className="text-red-500" size={40} />
+          <div className="w-24 h-24 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4 animate-scale-in shadow-xl shadow-red-500/20 relative">
+            <div className="absolute inset-0 bg-red-500/20 rounded-full animate-ping"></div>
+            <AlertCircle className="text-red-600 relative z-10" size={48} />
           </div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
             Emergency Access
@@ -48,8 +53,16 @@ export default function EmergencyAccess() {
           </p>
         </div>
 
+        {/* Ambulance Button */}
+        <div className="mb-6 text-center animate-slide-up" style={{ animationDelay: '0.1s' }}>
+          <a href="tel:108" className="btn bg-white text-red-600 hover:bg-red-50 border-2 border-red-200 shadow-xl px-8 py-4 w-full flex items-center justify-center gap-3 text-lg font-bold transition-all hover:scale-[1.02] active:scale-[0.98]">
+            <PhoneCall className="animate-pulse text-red-500" />
+            CALL AMBULANCE 108
+          </a>
+        </div>
+
         {/* Search Box */}
-        <div className="bg-white rounded-2xl shadow-card p-6 mb-6">
+        <div className="glass-panel border border-red-200/50 shadow-2xl p-6 mb-6 animate-slide-up">
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Enter Patient's Phone Number
           </label>
@@ -58,7 +71,7 @@ export default function EmergencyAccess() {
               <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
               <input
                 type="tel"
-                className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none transition"
+                className="input pl-10 font-mono text-lg w-full py-3"
                 placeholder="10-digit mobile number"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
@@ -67,7 +80,7 @@ export default function EmergencyAccess() {
             <button
               onClick={handleSearch}
               disabled={loading}
-              className="bg-red-500 text-white px-6 py-3 rounded-xl font-medium hover:bg-red-600 transition disabled:opacity-50 flex items-center gap-2"
+              className="btn bg-red-600 hover:bg-red-700 text-white shadow-lg shadow-red-500/30 border-none px-8 py-3 h-auto"
             >
               <PhoneCall size={18} />
               Search
@@ -83,14 +96,14 @@ export default function EmergencyAccess() {
 
         {/* Patient Info Card */}
         {patient && (
-          <div className="bg-white rounded-2xl shadow-card overflow-hidden">
-            <div className="bg-red-500 text-white px-6 py-4">
+          <div className="glass-panel overflow-hidden border border-red-200 shadow-2xl animate-slide-up">
+            <div className="bg-gradient-to-r from-red-600 to-red-500 text-white px-6 py-5">
               <div className="flex items-center gap-2">
                 <AlertCircle size={20} />
                 <span className="font-semibold">Emergency Information</span>
               </div>
             </div>
-            
+
             <div className="p-6 space-y-4">
               {/* Name */}
               <div className="flex items-center gap-3">

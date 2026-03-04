@@ -19,7 +19,7 @@ export default function PatientRecords() {
         getMyMedicalRecords(token),
         getMyReminders(token)
       ]);
-      
+
       if (recordsRes.records) setRecords(recordsRes.records);
       if (remindersRes.reminders) setReminders(remindersRes.reminders);
     } catch {
@@ -35,7 +35,7 @@ export default function PatientRecords() {
     try {
       await completeReminder(token, id);
       loadData();
-    } catch {}
+    } catch { }
   };
 
   if (loading) {
@@ -58,22 +58,20 @@ export default function PatientRecords() {
       <div className="flex gap-2 mb-6">
         <button
           onClick={() => setActiveTab("records")}
-          className={`px-4 py-2 rounded-lg font-medium transition ${
-            activeTab === "records" 
-              ? "bg-primary-500 text-white" 
-              : "bg-white text-text-secondary hover:bg-gray-50"
-          }`}
+          className={`btn ${activeTab === "records"
+            ? "btn-primary"
+            : "bg-white text-text-secondary hover:bg-gray-50 border border-border"
+            }`}
         >
           <FileText size={18} className="inline mr-2" />
           Medical Records
         </button>
         <button
           onClick={() => setActiveTab("reminders")}
-          className={`px-4 py-2 rounded-lg font-medium transition ${
-            activeTab === "reminders" 
-              ? "bg-primary-500 text-white" 
-              : "bg-white text-text-secondary hover:bg-gray-50"
-          }`}
+          className={`btn ${activeTab === "reminders"
+            ? "btn-primary"
+            : "bg-white text-text-secondary hover:bg-gray-50 border border-border"
+            }`}
         >
           <Calendar size={18} className="inline mr-2" />
           Upcoming Checkups ({reminders.filter(r => r.status === "PENDING").length})
@@ -84,22 +82,25 @@ export default function PatientRecords() {
       {activeTab === "records" && (
         <div className="space-y-4">
           {records.length === 0 ? (
-            <div className="bg-white rounded-2xl shadow-card p-8 text-center">
+            <div className="glass-panel p-12 text-center border-white/60">
               <FileText size={48} className="text-gray-300 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-gray-600 mb-2">No Medical Records Yet</h3>
               <p className="text-gray-500">Your medical records will appear here when a doctor adds them.</p>
             </div>
           ) : (
             records.map((record) => (
-              <div key={record.id} className="bg-white rounded-2xl shadow-card p-6">
+              <div key={record.id} className="glass-panel p-6 border-white/60 animate-slide-up hover:shadow-lg transition-shadow">
                 <div className="flex items-start justify-between mb-4">
                   <div>
                     <h3 className="text-lg font-semibold text-text-primary flex items-center gap-2">
                       <Stethoscope size={18} className="text-primary-500" />
                       {record.diagnosis}
                     </h3>
-                    <p className="text-sm text-text-secondary">
-                      Dr. {record.doctor.name} • {record.doctor.hospital?.name}
+                    <p className="text-sm text-text-secondary mt-1 tracking-wide">
+                      <span className="font-medium">Dr. {record.doctor.name}</span> • {record.doctor.hospital?.name}
+                      {record.doctor.hospital?.location && (
+                        <span> • {record.doctor.hospital.location}</span>
+                      )}
                     </p>
                   </div>
                   <span className="text-xs text-text-muted bg-gray-100 px-3 py-1 rounded-full">
@@ -150,33 +151,34 @@ export default function PatientRecords() {
       {activeTab === "reminders" && (
         <div className="space-y-4">
           {reminders.length === 0 ? (
-            <div className="bg-white rounded-2xl shadow-card p-8 text-center">
+            <div className="glass-panel p-12 text-center border-white/60">
               <Calendar size={48} className="text-gray-300 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-gray-600 mb-2">No Upcoming Checkups</h3>
               <p className="text-gray-500">Your upcoming checkup reminders will appear here.</p>
             </div>
           ) : (
             reminders.map((reminder) => (
-              <div 
-                key={reminder.id} 
-                className={`bg-white rounded-2xl shadow-card p-6 ${
-                  reminder.status === "COMPLETED" ? "opacity-60" : ""
-                }`}
+              <div
+                key={reminder.id}
+                className={`glass-panel p-6 border-white/60 mb-4 animate-slide-up hover:shadow-lg transition-shadow ${reminder.status === "COMPLETED" ? "opacity-60" : ""
+                  }`}
               >
                 <div className="flex items-start justify-between">
                   <div>
                     <h3 className="text-lg font-semibold text-text-primary">{reminder.message}</h3>
-                    <p className="text-sm text-text-secondary">
-                      Recommended by Dr. {reminder.doctor.name} • {reminder.doctor.hospital?.name}
+                    <p className="text-sm text-text-secondary mt-1">
+                      <span className="font-medium">Dr. {reminder.doctor.name}</span> • {reminder.doctor.hospital?.name}
+                      {reminder.doctor.hospital?.location && (
+                        <span> • {reminder.doctor.hospital.location}</span>
+                      )}
                     </p>
                   </div>
-                  <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                    reminder.status === "PENDING" 
-                      ? "bg-yellow-100 text-yellow-700"
-                      : reminder.status === "COMPLETED"
+                  <span className={`px-3 py-1 rounded-full text-xs font-medium ${reminder.status === "PENDING"
+                    ? "bg-yellow-100 text-yellow-700"
+                    : reminder.status === "COMPLETED"
                       ? "bg-green-100 text-green-700"
                       : "bg-gray-100 text-gray-700"
-                  }`}>
+                    }`}>
                     {reminder.status}
                   </span>
                 </div>
@@ -186,7 +188,7 @@ export default function PatientRecords() {
                     <Clock size={16} />
                     <span>Checkup Date: {new Date(reminder.checkupDate).toLocaleDateString()}</span>
                   </div>
-                  
+
                   {reminder.status === "PENDING" && (
                     <button
                       onClick={() => handleCompleteReminder(reminder.id)}

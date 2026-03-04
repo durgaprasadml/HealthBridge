@@ -94,25 +94,26 @@ export default function HospitalDashboard() {
     <DashboardLayout title="Hospital Dashboard">
       {/* Hospital Info Header */}
       {hospital && (
-        <div className="bg-gradient-to-r from-primary-600 to-primary-700 rounded-xl p-6 mb-6 text-white">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <div className="w-14 h-14 bg-white/20 rounded-full flex items-center justify-center">
-                <Building2 size={28} className="text-white" />
+        <div className="glass bg-gradient-to-r from-primary-600/90 to-primary-800/90 rounded-2xl p-8 mb-8 text-white shadow-xl shadow-primary-500/20 border-white/20 animate-slide-down">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+            <div className="flex items-center gap-5">
+              <div className="w-16 h-16 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center shadow-inner">
+                <Building2 size={32} className="text-white" />
               </div>
               <div>
-                <h2 className="text-xl font-bold">{hospital.name}</h2>
-                <p className="text-primary-100 text-sm">{hospital.location}</p>
+                <h2 className="text-2xl font-extrabold tracking-tight">{hospital.name}</h2>
+                <p className="text-primary-100/90 font-medium">{hospital.location}</p>
               </div>
             </div>
-            <div className="flex bg-white/20 items-center justify-between rounded-lg px-4 py-2 gap-4">
-              <div>
-                <p className="text-xs text-primary-100 uppercase tracking-wide">Hospital ID</p>
-                <p className="text-lg font-mono font-bold">{hospital.hospitalUid || "N/A"}</p>
+            <div className="flex bg-white/10 backdrop-blur-md rounded-xl px-5 py-3 border border-white/10 relative overflow-hidden group items-center justify-between gap-6">
+              <div className="absolute inset-0 bg-white/5 group-hover:bg-white/10 transition-colors"></div>
+              <div className="relative z-10">
+                <p className="text-xs text-primary-200 uppercase tracking-widest font-bold mb-1">Hospital ID</p>
+                <p className="text-xl font-mono font-bold tracking-wider">{hospital.hospitalUid || "N/A"}</p>
               </div>
               <button
                 onClick={() => setIsModalOpen(true)}
-                className="btn bg-white text-primary-600 hover:bg-primary-50 px-4 py-2 flex items-center gap-2 shadow-sm whitespace-nowrap"
+                className="btn bg-white/20 hover:bg-white/30 text-white backdrop-blur-md border border-white/30 transition-all font-medium flex items-center gap-2 shadow-sm whitespace-nowrap relative z-10 py-2.5"
               >
                 <UserPlus size={18} />
                 Add Doctor
@@ -203,8 +204,8 @@ export default function HospitalDashboard() {
 
       <div className="grid grid-cols-1 gap-6 mb-8">
 
-        <div className="bg-white rounded-xl shadow-card overflow-hidden">
-          <div className="p-6 border-b border-border">
+        <div className="glass-panel overflow-hidden border border-white/60 shadow-xl">
+          <div className="p-6 border-b border-border/50 bg-white/40">
             <h2 className="text-lg font-semibold text-text-primary">Doctors</h2>
             <p className="text-sm text-text-secondary mt-1">Doctors created by your hospital</p>
           </div>
@@ -232,8 +233,8 @@ export default function HospitalDashboard() {
         </div>
       </div>
 
-      <div className="bg-white rounded-xl shadow-card overflow-hidden">
-        <div className="p-6 border-b border-border">
+      <div className="glass-panel overflow-hidden border border-white/60 shadow-xl">
+        <div className="p-6 border-b border-border/50 bg-white/40">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
               <h2 className="text-lg font-semibold text-text-primary">Active Accesses</h2>

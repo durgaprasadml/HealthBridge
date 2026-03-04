@@ -1,4 +1,5 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { useEffect } from "react";
 import { Shield, Users, FileText, Bell, ArrowRight, CheckCircle, Activity, Heart, Clock, AlertCircle } from "lucide-react";
 
 const features = [
@@ -36,6 +37,18 @@ const stats = [
 ];
 
 export default function Home() {
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    const role = localStorage.getItem("role");
+    if (token && role) {
+      if (role === "PATIENT") navigate("/patient");
+      else if (role === "DOCTOR") navigate("/doctor");
+      else if (role === "HOSPITAL") navigate("/hospital");
+    }
+  }, [navigate]);
+
   return (
     <main className="bg-background min-h-screen overflow-hidden">
       {/* Hero Section */}
@@ -241,13 +254,6 @@ export default function Home() {
               className="bg-white text-primary-700 px-8 py-4 rounded-xl font-bold hover:bg-gray-50 transition-all shadow-xl hover:shadow-2xl hover:-translate-y-1 active:scale-95 text-lg"
             >
               Create Free Account
-            </Link>
-            <Link
-              to="/emergency"
-              className="bg-red-500 text-white border-2 border-red-400 px-8 py-4 rounded-xl font-bold hover:bg-red-600 transition-all shadow-lg hover:shadow-xl hover:-translate-y-1 active:scale-95 text-lg flex items-center justify-center gap-2 drop-shadow-md"
-            >
-              <AlertCircle size={20} />
-              Emergency Mode
             </Link>
           </div>
         </div>
