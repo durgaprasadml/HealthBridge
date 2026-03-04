@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import DashboardLayout from "../components/DashboardLayout";
 import StatCard from "../components/StatsCard";
-import { Search, AlertTriangle, Clock, Users, CheckCircle, Loader2, Shield, Stethoscope } from "lucide-react";
+import { Search, AlertTriangle, Clock, Users, CheckCircle, Loader2, Shield, Stethoscope, AlertCircle } from "lucide-react";
+import { Link } from "react-router-dom";
 import { getDoctorAccesses, requestEmergencyAccess, requestPatientAccess, getProfile } from "../services/api";
 
 export default function DoctorDashboard() {
@@ -51,7 +52,7 @@ export default function DoctorDashboard() {
       if (!/^[6-9]\d{9}$/.test(uid) && !uid.startsWith("HB-")) {
         uid = "HB-" + uid;
       }
-      
+
       const res =
         mode === "EMERGENCY"
           ? await requestEmergencyAccess(token, uid, reason || "Emergency treatment required")
@@ -83,24 +84,36 @@ export default function DoctorDashboard() {
     <DashboardLayout title="Doctor Dashboard">
       {/* Doctor Info Header */}
       {doctorProfile && (
-        <div className="bg-gradient-to-r from-primary-600 to-primary-700 rounded-xl p-6 mb-6 text-white">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <div className="w-14 h-14 bg-white/20 rounded-full flex items-center justify-center">
-                <Stethoscope size={28} className="text-white" />
+        <div className="glass bg-gradient-to-r from-primary-600/90 to-primary-800/90 rounded-2xl p-8 mb-8 text-white shadow-xl shadow-primary-500/20 border-white/20 animate-slide-down">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+            <div className="flex items-center gap-5">
+              <div className="w-16 h-16 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center shadow-inner">
+                <Stethoscope size={32} className="text-white" />
               </div>
               <div>
-                <h2 className="text-xl font-bold">{doctorProfile.name}</h2>
-                <p className="text-primary-100 text-sm">{doctorProfile.hospital?.name}</p>
+                <h2 className="text-2xl font-extrabold tracking-tight">{doctorProfile.name}</h2>
+                <p className="text-primary-100/90 font-medium">{doctorProfile.hospital?.name}</p>
               </div>
             </div>
-            <div className="bg-white/20 rounded-lg px-4 py-2">
-              <p className="text-xs text-primary-100 uppercase tracking-wide">Doctor ID</p>
-              <p className="text-lg font-mono font-bold">{doctorProfile.doctorUid}</p>
+            <div className="bg-white/10 backdrop-blur-md rounded-xl px-5 py-3 border border-white/10 relative overflow-hidden group">
+              <div className="absolute inset-0 bg-white/5 group-hover:bg-white/10 transition-colors"></div>
+              <p className="text-xs text-primary-200 uppercase tracking-widest font-bold mb-1">Doctor ID</p>
+              <p className="text-xl font-mono font-bold tracking-wider">{doctorProfile.doctorUid}</p>
             </div>
           </div>
         </div>
       )}
+
+      {/* Emergency Action */}
+      <div className="flex justify-end mb-6">
+        <Link
+          to="/emergency"
+          className="btn btn-danger flex items-center gap-2 px-6 py-3 shadow-lg shadow-red-500/30"
+        >
+          <AlertCircle size={20} />
+          Emergency Access Portal
+        </Link>
+      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         {stats.map((stat, index) => (
@@ -111,7 +124,7 @@ export default function DoctorDashboard() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white rounded-xl shadow-card p-6 animate-fade-in">
+        <div className="glass-panel p-6 animate-fade-in border border-white/60 shadow-xl">
           <div className="flex items-center gap-3 mb-6">
             <div className={`p-3 rounded-xl ${mode === "EMERGENCY" ? "bg-red-50" : "bg-blue-50"}`}>
               {mode === "EMERGENCY" ? <AlertTriangle size={24} className="text-error" /> : <Shield size={24} className="text-blue-600" />}
@@ -219,8 +232,8 @@ export default function DoctorDashboard() {
           )}
         </div>
 
-        <div className="bg-white rounded-xl shadow-card">
-          <div className="p-6 border-b border-border">
+        <div className="glass-panel border border-white/60 shadow-xl">
+          <div className="p-6 border-b border-border/50 bg-white/40">
             <h2 className="text-lg font-semibold text-text-primary">Recent Accesses</h2>
             <p className="text-sm text-text-secondary mt-1">Your standard and emergency access activity</p>
           </div>
@@ -237,18 +250,46 @@ export default function DoctorDashboard() {
               {recentAccesses.slice(0, 15).map((access) => (
                 <div key={`${access.type}-${access.id}`} className="p-4 hover:bg-primary-50/30 transition-colors">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center text-primary-600 font-medium">
-                        {access.patient?.healthUid?.slice(-2) || "??"}
+                    <div className="flex items-start gap-4">
+                      <div className="w-12 h-12 rounded-full bg-primary-100 flex items-center justify-center text-primary-600 font-bold text-lg shrink-0">
+                        {access.patient?.name?.charAt(0) || "P"}
                       </div>
                       <div>
-                        <p className="font-medium text-text-primary text-sm">{access.patient?.healthUid || "Unknown"}</p>
-                        <p className="text-xs text-text-muted">{access.createdAt ? new Date(access.createdAt).toLocaleString() : "Unknown date"}</p>
+                        <p className="font-bold text-text-primary text-base">{access.patient?.name || "Unknown Patient"}</p>
+                        <p className="text-xs font-mono text-text-secondary mt-0.5">{access.patient?.healthUid || "N/A"}</p>
+                        <div className="flex items-center gap-2 mt-1.5 text-xs font-medium text-text-muted">
+                          <span className="bg-gray-100 px-2 py-0.5 rounded-full">
+                            Age: {access.patient?.dateOfBirth ? new Date().getFullYear() - new Date(access.patient.dateOfBirth).getFullYear() : "N/A"}
+                          </span>
+                          <span className="bg-gray-100 px-2 py-0.5 rounded-full">
+                            {access.patient?.address || "City N/A"}
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-gray-400 mt-2">Access: {access.createdAt ? new Date(access.createdAt).toLocaleString() : "Unknown date"}</p>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <span className={`badge ${access.type === "EMERGENCY" ? "badge-error" : "badge-info"}`}>{access.type}</span>
-                      <p className="text-xs text-text-muted mt-1">{access.status}</p>
+                    <div className="flex flex-col items-end gap-2 text-right">
+                      <div>
+                        <span className={`badge ${access.type === "EMERGENCY" ? "badge-error" : "badge-info"}`}>{access.type}</span>
+                        <p className="text-xs text-text-muted mt-1">{access.status}</p>
+                      </div>
+                      {(access.status === "APPROVED" || access.status === "ACTIVE") && (
+                        <div className="flex items-center gap-2 mt-2">
+                          <Link
+                            to="/doctor/add-record"
+                            state={{ patient: access.patient }}
+                            className="btn btn-sm bg-primary-50 text-primary-700 hover:bg-primary-100 px-3 py-1.5 text-xs font-semibold"
+                          >
+                            Add Record
+                          </Link>
+                          <Link
+                            to={`/doctor/patient/${access.patient?.healthUid}`}
+                            className="btn btn-sm bg-white border border-gray-200 text-text-secondary hover:bg-gray-50 px-3 py-1.5 text-xs font-semibold shadow-sm"
+                          >
+                            View History
+                          </Link>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>

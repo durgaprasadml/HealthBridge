@@ -7,7 +7,8 @@ const roles = [
     label: "Patient",
     description: "Access your health records and manage permissions",
     icon: User,
-    color: "bg-emerald-50 text-emerald-600 hover:bg-emerald-100",
+    containerClass: "bg-emerald-50/50 hover:bg-emerald-100/50 text-emerald-800",
+    iconClass: "text-emerald-600",
     path: "/login/patient",
   },
   {
@@ -15,7 +16,8 @@ const roles = [
     label: "Doctor",
     description: "View patient records with patient consent",
     icon: Stethoscope,
-    color: "bg-blue-50 text-blue-600 hover:bg-blue-100",
+    containerClass: "bg-blue-50/50 hover:bg-blue-100/50 text-blue-800",
+    iconClass: "text-blue-600",
     path: "/login/doctor",
   },
   {
@@ -23,7 +25,8 @@ const roles = [
     label: "Hospital",
     description: "Manage your hospital and doctors",
     icon: Building2,
-    color: "bg-purple-50 text-purple-600 hover:bg-purple-100",
+    containerClass: "bg-purple-50/50 hover:bg-purple-100/50 text-purple-800",
+    iconClass: "text-purple-600",
     path: "/login/hospital",
   },
 ];
@@ -32,33 +35,37 @@ export default function Login() {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-primary-100 flex items-center justify-center p-4">
-      {/* Background Pattern */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-primary-200/30 rounded-full blur-3xl"></div>
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-primary-200/30 rounded-full blur-3xl"></div>
+    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
+      {/* Dynamic Background Elements */}
+      <div className="absolute inset-0 z-0 pointer-events-none">
+        <div className="absolute top-[20%] left-[10%] w-[30rem] h-[30rem] bg-primary-300/20 rounded-full mix-blend-multiply filter blur-[100px] animate-pulse"></div>
+        <div className="absolute top-[30%] right-[10%] w-[35rem] h-[35rem] bg-emerald-300/20 rounded-full mix-blend-multiply filter blur-[100px] animate-pulse" style={{ animationDelay: '2s' }}></div>
+        <div className="absolute bottom-[-10%] left-[20%] w-[40rem] h-[40rem] bg-blue-300/20 rounded-full mix-blend-multiply filter blur-[120px] animate-pulse" style={{ animationDelay: '4s' }}></div>
       </div>
 
-      <div className="relative z-10 w-full max-w-lg">
+      <div className="relative z-10 w-full max-w-lg animate-scale-in">
         {/* Logo */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary-500 text-white mb-4 shadow-lg shadow-primary-500/30">
-            <Shield size={32} />
+        <div className="text-center mb-10">
+          <div className="inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-gradient-to-br from-primary-400 to-primary-600 text-white mb-6 shadow-2xl shadow-primary-500/40 relative group">
+            <div className="absolute inset-0 bg-white/20 rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity"></div>
+            <Shield size={40} className="transform transition-transform group-hover:scale-110" />
           </div>
-          <h1 className="text-3xl font-bold text-text-primary">HealthBridge</h1>
-          <p className="text-text-secondary mt-2">Secure Healthcare Identity Platform</p>
+          <h1 className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-primary-700 to-emerald-700 tracking-tight">HealthBridge</h1>
+          <p className="text-text-secondary mt-3 text-lg font-medium">Secure Healthcare Identity Platform</p>
         </div>
 
         {/* Role Selection Card */}
-        <div className="bg-white rounded-2xl shadow-card p-6 md:p-8">
-          <h2 className="text-xl font-semibold text-text-primary text-center mb-2">
+        <div className="glass-panel p-8 relative overflow-hidden shadow-2xl">
+          <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-primary-400 via-primary-500 to-emerald-400 z-20"></div>
+
+          <h2 className="text-2xl font-bold text-text-primary text-center mb-2">
             Choose Your Portal
           </h2>
-          <p className="text-text-secondary text-center mb-6">
+          <p className="text-text-secondary text-center mb-8">
             Select how you want to access HealthBridge
           </p>
 
-          <div className="space-y-3">
+          <div className="space-y-4">
             {roles.map((role) => {
               const Icon = role.icon;
               return (
@@ -66,18 +73,21 @@ export default function Login() {
                   key={role.id}
                   onClick={() => navigate(role.path)}
                   className={`
-                    w-full flex items-center gap-4 p-4 rounded-xl transition-all duration-200
-                    ${role.color}
+                    group w-full flex items-center gap-4 p-5 rounded-2xl transition-all duration-300 border border-white/60 shadow-sm hover:-translate-y-1 hover:shadow-md
+                    ${role.containerClass}
                   `}
+                  style={{ backdropFilter: 'blur(12px)' }}
                 >
-                  <div className="p-2 rounded-lg bg-white/80 shadow-sm">
-                    <Icon size={24} />
+                  <div className={`p-3 rounded-xl bg-white shadow-sm transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3`}>
+                    <Icon size={28} className={role.iconClass} />
                   </div>
                   <div className="flex-1 text-left">
-                    <p className="font-semibold text-text-primary">{role.label}</p>
-                    <p className="text-sm text-text-secondary">{role.description}</p>
+                    <p className="font-bold text-text-primary text-lg">{role.label}</p>
+                    <p className="text-sm text-text-secondary font-medium">{role.description}</p>
                   </div>
-                  <ArrowRight size={20} className="text-text-muted" />
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center bg-white shadow-sm transition-transform duration-300 group-hover:translate-x-2`}>
+                    <ArrowRight size={18} className={role.iconClass} />
+                  </div>
                 </button>
               );
             })}

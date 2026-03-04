@@ -16,14 +16,12 @@ export default function Header() {
   const isLoggedIn = !!token;
 
   return (
-    <header className="w-full border-b bg-white sticky top-0 z-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+    <header className="w-full sticky top-0 z-50 glass border-b border-white/20">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 h-20 flex items-center justify-between transition-all duration-300">
         {/* Logo */}
-        <Link to="/" className="flex items-center gap-2">
-          <div className="w-9 h-9 rounded-lg bg-primary-500 flex items-center justify-center text-white">
-            <Shield size={20} />
-          </div>
-          <span className="text-lg font-semibold text-text-primary hidden sm:block">
+        <Link to="/" className="flex items-center gap-3 transition-transform hover:scale-105 active:scale-95 border-b-2 border-transparent">
+          <img src="/logo.png" alt="HealthBridge Logo" className="w-10 h-10 object-contain drop-shadow-sm mix-blend-multiply" />
+          <span className="text-xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-primary-600 to-primary-800 hidden sm:block tracking-tight">
             HealthBridge
           </span>
         </Link>
@@ -37,15 +35,6 @@ export default function Header() {
 
         {/* Actions */}
         <div className="flex items-center gap-3">
-          {/* Emergency Access Button - Always Visible */}
-          <Link
-            to="/emergency"
-            className="px-4 py-2 rounded-lg bg-red-500 text-white hover:bg-red-600 transition font-medium flex items-center gap-1"
-          >
-            <AlertCircle size={16} />
-            <span className="hidden sm:inline">Emergency</span>
-          </Link>
-          
           {isLoggedIn ? (
             <div className="relative">
               <button

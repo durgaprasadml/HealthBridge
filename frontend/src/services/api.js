@@ -171,18 +171,24 @@ export async function addMedicalRecord(token, data) {
   });
 }
 
+export async function getPatientRecordsByDoctor(token, patientUid) {
+  return request(`/medical/patient/${patientUid}`, {
+    headers: authHeaders(token),
+  });
+}
+
 /* ============================= */
 /* REMINDERS                     */
 /* ============================= */
 
 export async function getMyReminders(token) {
-  return request("/reminders/my-reminders", {
+  return request("/reminder/my-reminders", {
     headers: authHeaders(token),
   });
 }
 
 export async function completeReminder(token, id) {
-  return request(`/reminders/${id}/complete`, {
+  return request(`/reminder/${id}/complete`, {
     method: "PUT",
     headers: authHeaders(token),
   });

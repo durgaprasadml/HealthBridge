@@ -116,7 +116,7 @@ router.get("/patient/:patientUid", verifyToken, async (req, res) => {
       where: { patientId: patient.id },
       include: {
         doctor: {
-          select: { name: true, doctorUid: true, hospital: { select: { name: true } } },
+          select: { name: true, doctorUid: true, hospital: { select: { name: true, location: true } } },
         },
       },
       orderBy: { createdAt: "desc" },
@@ -144,7 +144,7 @@ router.get("/my-records", verifyToken, async (req, res) => {
       where: { patientId: userId },
       include: {
         doctor: {
-          select: { name: true, doctorUid: true, hospital: { select: { name: true } } },
+          select: { name: true, doctorUid: true, hospital: { select: { name: true, location: true } } },
         },
       },
       orderBy: { createdAt: "desc" },

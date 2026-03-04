@@ -1,15 +1,18 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { FileText, Pill, Stethoscope, Calendar, Save, ArrowLeft, User } from "lucide-react";
+import { useState, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { FileText, Pill, Stethoscope, Calendar, Save, ArrowLeft, User, MapPin } from "lucide-react";
 import { addMedicalRecord } from "../services/api";
 
 export default function AddMedicalRecord() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const patientContext = location.state?.patient;
+
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
-  
+
   const [formData, setFormData] = useState({
-    patientUid: "",
+    patientUid: patientContext?.healthUid || "",
     diagnosis: "",
     symptoms: "",
     medications: "",
@@ -20,7 +23,7 @@ export default function AddMedicalRecord() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setMessage("");
-    
+
     if (!formData.patientUid || !formData.diagnosis || !formData.medications) {
       setMessage("Patient UID, diagnosis, and medications are required");
       return;
@@ -69,6 +72,33 @@ export default function AddMedicalRecord() {
 
       {/* Form */}
       <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-card p-6">
+
+        {/* Patient Context Banner */}
+        {patientContext && (
+          <div className="mb-6 p-4 bg-primary-50 border border-primary-100 rounded-xl flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-primary-200 text-primary-700 flex items-center justify-center font-bold">
+                {patientContext.name?.charAt(0) || "P"}
+              </div>
+              <div>
+                <p className="font-semibold text-primary-900">{patientContext.name}</p>
+                <p className="text-xs text-primary-600 flex items-center gap-1 mt-0.5">
+                  <User size={12} /> {patientContext.healthUid}
+                  {patientContext.address && (
+                    <>
+                      <span className="mx-1">•</span>
+                      <MapPin size={12} /> {patientContext.address}
+                    </>
+                  )}
+                </p>
+              </div>
+            </div>
+            <div className="px-3 py-1 bg-primary-100 text-primary-700 text-xs font-semibold rounded-full">
+              Verified Source
+            </div>
+          </div>
+        )}
+
         {/* Patient UID */}
         <div className="mb-4">
           <label className="block text-sm font-medium text-text-primary mb-1">
@@ -76,10 +106,11 @@ export default function AddMedicalRecord() {
           </label>
           <input
             type="text"
-            className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition"
+            className={`w-full px-4 py-3 border border-gray-200 rounded-xl outline-none transition ${patientContext ? "bg-gray-50 text-gray-500 cursor-not-allowed border-gray-100" : "focus:ring-2 focus:ring-primary-500 focus:border-transparent"}`}
             placeholder="HB-XXXXXXXX"
             value={formData.patientUid}
-            onChange={(e) => setFormData({ ...formData, patientUid: e.target.value.toUpperCase() })}
+            onChange={(e) => !patientContext && setFormData({ ...formData, patientUid: e.target.value.toUpperCase() })}
+            readOnly={!!patientContext}
           />
         </div>
 
@@ -157,11 +188,10 @@ export default function AddMedicalRecord() {
 
         {/* Message */}
         {message && (
-          <div className={`mb-4 px-4 py-3 rounded-lg text-sm ${
-            message.includes("success") 
-              ? "bg-green-50 text-green-600" 
+          <div className={`mb-4 px-4 py-3 rounded-lg text-sm ${message.includes("success")
+              ? "bg-green-50 text-green-600"
               : "bg-red-50 text-red-600"
-          }`}>
+            }`}>
             {message}
           </div>
         )}

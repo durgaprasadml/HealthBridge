@@ -71,7 +71,7 @@ router.get("/accesses", verifyToken, async (req, res) => {
       prisma.accessRequest.findMany({
         where: { doctorId },
         include: {
-          patient: { select: { id: true, name: true, healthUid: true } },
+          patient: { select: { id: true, name: true, healthUid: true, dateOfBirth: true, address: true } },
         },
         orderBy: { createdAt: "desc" },
         take: 20,
@@ -79,7 +79,7 @@ router.get("/accesses", verifyToken, async (req, res) => {
       prisma.emergencyAccess.findMany({
         where: { doctorId },
         include: {
-          patient: { select: { id: true, name: true, healthUid: true } },
+          patient: { select: { id: true, name: true, healthUid: true, dateOfBirth: true, address: true } },
         },
         orderBy: { startedAt: "desc" },
         take: 20,

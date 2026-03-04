@@ -9,7 +9,7 @@ export default function Profile() {
   const [message, setMessage] = useState("");
   const location = useLocation();
   const isNewUser = location.state?.isNewUser;
-  
+
   const [formData, setFormData] = useState({
     name: "",
     phone: "",
@@ -58,7 +58,7 @@ export default function Profile() {
   const handleSave = async () => {
     setSaving(true);
     setMessage("");
-    
+
     const token = localStorage.getItem("token");
     try {
       const res = await updateProfile(token, formData);
@@ -91,7 +91,7 @@ export default function Profile() {
           {isNewUser ? "Complete Your Profile" : "My Profile"}
         </h1>
         <p className="text-text-secondary">
-          {isNewUser 
+          {isNewUser
             ? "Please complete your profile to get the most out of HealthBridge"
             : "View and manage your health information"
           }
@@ -99,7 +99,7 @@ export default function Profile() {
       </div>
 
       {/* Health ID Card */}
-      <div className="bg-gradient-to-r from-primary-500 to-primary-600 rounded-2xl p-6 text-white mb-6">
+      <div className="glass bg-gradient-to-r from-primary-600/90 to-primary-800/90 rounded-2xl p-8 mb-8 text-white shadow-xl shadow-primary-500/20 border-white/20 animate-slide-down">
         <div className="flex items-center justify-between">
           <div>
             <p className="text-primary-100 text-sm">Health ID</p>
@@ -112,7 +112,7 @@ export default function Profile() {
       </div>
 
       {/* Profile Form */}
-      <div className="bg-white rounded-2xl shadow-card p-6">
+      <div className="glass-panel p-8 shadow-xl border-white/60 animate-fade-in">
         {/* Name */}
         <div className="mb-4">
           <label className="block text-sm font-medium text-text-primary mb-1">
@@ -120,7 +120,7 @@ export default function Profile() {
           </label>
           <input
             type="text"
-            className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition"
+            className="input w-full"
             value={formData.name}
             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
           />
@@ -133,7 +133,7 @@ export default function Profile() {
           </label>
           <input
             type="text"
-            className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 text-gray-500"
+            className="input w-full bg-gray-50/80 text-gray-500 cursor-not-allowed"
             value={formData.phone}
             disabled
           />
@@ -146,7 +146,7 @@ export default function Profile() {
               <Heart size={16} className="inline mr-1" /> Blood Group
             </label>
             <select
-              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition"
+              className="input w-full"
               value={formData.bloodGroup}
               onChange={(e) => setFormData({ ...formData, bloodGroup: e.target.value })}
             >
@@ -164,7 +164,7 @@ export default function Profile() {
           <div>
             <label className="block text-sm font-medium text-text-primary mb-1">Gender</label>
             <select
-              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition"
+              className="input w-full"
               value={formData.gender}
               onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
             >
@@ -183,7 +183,7 @@ export default function Profile() {
           </label>
           <input
             type="date"
-            className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition"
+            className="input w-full"
             value={formData.dateOfBirth}
             onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
           />
@@ -196,7 +196,7 @@ export default function Profile() {
           </label>
           <input
             type="text"
-            className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition"
+            className="input w-full"
             placeholder="List any allergies (medications, food, etc.)"
             value={formData.allergies}
             onChange={(e) => setFormData({ ...formData, allergies: e.target.value })}
@@ -209,7 +209,7 @@ export default function Profile() {
             <MapPin size={16} className="inline mr-1" /> Address
           </label>
           <textarea
-            className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition"
+            className="input w-full"
             placeholder="Your address"
             rows={2}
             value={formData.address}
@@ -221,13 +221,13 @@ export default function Profile() {
 
         {/* Emergency Contact */}
         <h3 className="text-lg font-semibold text-text-primary mb-4">Emergency Contact</h3>
-        
+
         <div className="grid grid-cols-2 gap-4 mb-4">
           <div>
             <label className="block text-sm font-medium text-text-primary mb-1">Contact Name</label>
             <input
               type="text"
-              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition"
+              className="input w-full"
               placeholder="Emergency contact name"
               value={formData.emergencyContact}
               onChange={(e) => setFormData({ ...formData, emergencyContact: e.target.value })}
@@ -237,10 +237,10 @@ export default function Profile() {
             <label className="block text-sm font-medium text-text-primary mb-1">Contact Phone</label>
             <input
               type="tel"
-              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition"
+              className="input w-full"
               placeholder="10-digit number"
               value={formData.emergencyPhone}
-              onChange={(e) => setFormData({ ...formData, emergencyPhone: e.target.value.replace(/\D/g, "").slice(0, 10)})}
+              onChange={(e) => setFormData({ ...formData, emergencyPhone: e.target.value.replace(/\D/g, "").slice(0, 10) })}
               maxLength={10}
             />
           </div>
@@ -257,7 +257,7 @@ export default function Profile() {
         <button
           onClick={handleSave}
           disabled={saving}
-          className="w-full mt-4 bg-primary-500 text-white py-3 rounded-xl font-medium hover:bg-primary-600 transition disabled:opacity-50 flex items-center justify-center gap-2"
+          className="btn btn-primary w-full py-4 text-lg mt-4"
         >
           <Save size={18} />
           {saving ? "Saving..." : "Save Profile"}
